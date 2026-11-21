@@ -726,7 +726,7 @@
       const STORAGE_KEY = 'apu_opslog_state_v1';
 
       const DEFAULT_STATIONS = ['DEL', 'BOM', 'BLR', 'HYD', 'MAA', 'CCU', 'COK', 'AMD', 'PNQ', 'GOI'];
-      const DEFAULT_FLEETS = ['A320', 'A320neo', 'A321', 'A321neo', 'B737-800', 'B737 MAX', 'B787-8', 'B777-300ER', 'ATR-72'];
+      const DEFAULT_FLEETS = ['A320', 'A320neo', 'A321', 'A321neo', 'A350', 'B737-800', 'B737 MAX', 'B777-200LR', 'B777-300ER', 'B787-8', 'B787-9', 'ATR-72'];
       const DEFAULT_REASONS = [
         'PCA / ACU Unserviceable',
         'GPU / FEGP Unserviceable',
@@ -818,6 +818,7 @@
             if (parsed && Array.isArray(parsed.entries)) {
               state = Object.assign(state, parsed);
               if (!state.webhookUrl && DEFAULT_WEBHOOK_URL) state.webhookUrl = DEFAULT_WEBHOOK_URL;
+              state.fleets = [...new Set([...DEFAULT_FLEETS, ...(Array.isArray(state.fleets) ? state.fleets : [])])];
               return;
             }
           }
