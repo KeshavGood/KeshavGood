@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>APU OpsLog — Aviation APU Usage Tracker & Live Excel Sync</title>
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Custom scrollbar for wide Excel table */
+    .excel-scroll::-webkit-scrollbar {
+      height: 8px;
+      width: 8px;
+    }
+    .excel-scroll::-webkit-scrollbar-track {
+      background: #e2e8f0;
+      border-radius: 4px;
+    }
+    .excel-scroll::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 4px;
+    }
+    .excel-scroll::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+    .sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 10;
+    }
+    .tap-target {
+      min-height: 44px;
+    }
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast-enter {
+      animation: slideUp 0.22s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col pb-20 md:pb-6">
+
+  <!-- Top Navigation Header -->
+  <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+      <!-- Brand -->
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-sky-500 flex items-center justify-center shrink-0 shadow-sm">
+          <i data-lucide="plane" class="w-5 h-5 text-white"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-base sm:text-lg font-bold tracking-tight truncate leading-tight">APU OpsLog</h1>
+          <p class="text-[11px] text-slate-400 truncate hidden sm:block">Ground Operations APU Tracker &amp; Live Excel Sync</p>
+        </div>
+      </div>
+
+      <!-- Desktop Tabs -->
+      <nav class="hidden md:flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl" id="desktopNav">
+        <button data-tab="entry" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors bg-sky-600 text-white">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i> New Entry
+        </button>
+        <button data-tab="sheet" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors text-slate-300 hover:text-white">
+          <i data-lucide="table-2" class="w-4 h-4"></i> Live Sheet
+          <span id="desktopCountBadge" class="ml-0.5 text-[11px] px-1.5 py-0.5 rounded-full bg-slate-700 text-sky-300 font-semibold">0</span>
+        </button>
+        <button data-tab="analytics" class="nav-btn admin-only hidden px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors text-slate-300 hover:text-white">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Analytics
+        </button>
+        <button data-tab="admin" class="nav-btn admin-only hidden px-3.5 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors text-slate-300 hover:text-white">
+          <i data-lucide="shield-check" class="w-4 h-4"></i> Admin Panel
+        </button>
+      </nav>
+
+      <!-- Right Controls: Sync Indicator + Role Button -->
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="syncStatusBtn" type="button" title="Live Excel Sync Status" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium border border-slate-700 transition-colors">
+          <span id="syncDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span id="syncLabel" class="hidden sm:inline text-slate-200">Local Ready</span>
+        </button>
+
+        <button id="roleBtn" type="button" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40">
+          <i data-lucide="lock" id="roleIcon" class="w-3.5 h-3.5"></i>
+          <span id="roleBtnText">Admin Login</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Role / Status Banner -->
+  <div id="roleBanner" class="bg-sky-50 border-b border-sky-200 text-sky-900 text-xs px-4 py-2">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span id="roleBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold bg-sky-600 text-white">
+          Default Operator
+        </span>
+        <span id="roleBannerMsg">All staff can log new APU entries directly. Admin access required to edit, delete, or change settings.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="operatorTagInput" class="text-slate-600 font-medium hidden sm:inline">Logged by:</label>
+        <input id="operatorTagInput" type="text" placeholder="Your Name / Staff ID (optional)" class="bg-white border border-sky-200 rounded-md px-2 py-0.5 text-xs text-slate-800 w-44 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6">
+
+    <!-- ==================== TAB 1: NEW ENTRY FORM ==================== -->
+    <section id="tab-entry" class="tab-panel space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <!-- Form Header -->
+        <div class="px-4 sm:px-6 py-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-bold text-slate-900">Log APU Usage Entry</h2>
+              <span id="nextEntryBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200">Entry #1</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Automatically appends to the Live Excel Sheet upon submission.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="resetFormBtn" class="tap-target px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-100 flex items-center gap-1.5">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Clear
+            </button>
+          </div>
+        </div>
+
+        <form id="apuForm" class="p-4 sm:p-6 space-y-6" novalidate>
+          <!-- Group 1: Flight & Aircraft Identification -->
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+              <i data-lucide="plane-landing" class="w-4 h-4 text-sky-600"></i> 1. Flight &amp; Aircraft Details
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              <!-- Entry No. (Auto) -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1" for="fEntryNo">Entry No.</label>
+                <input id="fEntryNo" type="text" readonly class="tap-target w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm font-bold text-slate-600 cursor-not-allowed" />
+              </div>
+
+              <!-- Date (DD-MMM-YY) -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1" for="fDate">
+                  Date (DD-MMM-YY) <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                  <input id="fDate" type="date" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500" />
+                  <span id="fDatePreview" class="block text-[11px] text-sky-700 font-semibold mt-1">Format: --</span>
+                </div>
+              </div>
+
+              <!-- Station -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1" for="fStation">
+                  Station <span class="text-rose-500">*</span>
+                </label>
+                <input id="fStation" list="stationList" type="text" maxlength="6" required placeholder="e.g. DEL" class="tap-target w-full uppercase rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <datalist id="stationList"></datalist>
+              </div>
+
+              <!-- Fleet -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1" for="fFleet">
+                  Fleet <span class="text-rose-500">*</span>
+                </label>
+                <select id="fFleet" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"></select>
+              </div>
+
+              <!-- Arr Flight No. -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1" for="fArrFlight">
+                  Arr Flight No. <span class="text-rose-500">*</span>
+                </label>
+                <input id="fArrFlight" type="text" required placeholder="e.g. 6E-2041" class="tap-target w-full uppercase rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              </div>
+
+              <!-- Dep Flight No. -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1" for="fDepFlight">
+                  Dep Flight No. <span class="text-rose-500">*</span>
+                </label>
+                <input id="fDepFlight" type="text" required placeholder="e.g. 6E-2042" class="tap-target w-full uppercase rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              </div>
+
+              <!-- AC Reg. -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1" for="fAcReg">
+                  AC Reg. <span class="text-rose-500">*</span>
+                </label>
+                <input id="fAcReg" type="text" required placeholder="e.g. VT-IZK" class="tap-target w-full uppercase rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              </div>
+
+              <!-- Stand / Bay No. & Bay Type -->
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1" for="fBayNo">
+                    Stand / Bay <span class="text-rose-500">*</span>
+                  </label>
+                  <input id="fBayNo" type="text" required placeholder="e.g. 14B" class="tap-target w-full uppercase rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1" for="fBayType">
+                    Bay Type <span class="text-rose-500">*</span>
+                  </label>
+                  <select id="fBayType" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    <option value="Contact">Contact</option>
+                    <option value="Remote">Remote</option>
+                    <option value="Open Stand">Open Stand</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Group 2: Timings & Auto APU ON TIME -->
+          <div class="pt-4 border-t border-slate-100">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <i data-lucide="clock" class="w-4 h-4 text-sky-600"></i> 2. Block &amp; APU Timings (Local Time 24h)
+              </h3>
+              <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg cursor-pointer select-none">
+                <input id="fRanThroughout" type="checkbox" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500" />
+                <span>APU ran throughout turnaround</span>
+              </label>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+              <!-- On-Blocks -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-xs font-semibold text-slate-700" for="fOnBlocks">On-Blocks (LT hh:mm) <span class="text-rose-500">*</span></label>
+                  <button type="button" data-now="fOnBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                </div>
+                <input id="fOnBlocks" type="time" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              </div>
+
+              <!-- APU OFF after arrival -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-xs font-semibold text-slate-700" for="fApuOffArr">APU OFF after arr.</label>
+                  <button type="button" data-now="fApuOffArr" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                </div>
+                <input id="fApuOffArr" type="time" class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400" />
+                <span class="block text-[10px] text-slate-500 mt-0.5">Leave blank if ran throughout</span>
+              </div>
+
+              <!-- APU ON for departure -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-xs font-semibold text-slate-700" for="fApuOnDep">APU ON for dep.</label>
+                  <button type="button" data-now="fApuOnDep" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                </div>
+                <input id="fApuOnDep" type="time" class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400" />
+              </div>
+
+              <!-- Off-Blocks -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-xs font-semibold text-slate-700" for="fOffBlocks">Off-Blocks (LT hh:mm) <span class="text-rose-500">*</span></label>
+                  <button type="button" data-now="fOffBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                </div>
+                <input id="fOffBlocks" type="time" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              </div>
+
+              <!-- APU ON TIME (Auto Calculated + Manual Override) -->
+              <div class="bg-sky-50/80 border border-sky-200 rounded-xl p-2.5 flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                  <label class="text-xs font-bold text-sky-900" for="fApuOnTime">APU ON TIME</label>
+                  <button type="button" id="toggleManualApuBtn" class="text-[10px] font-semibold text-sky-700 underline">Override</button>
+                </div>
+                <input id="fApuOnTime" type="text" placeholder="00:00" readonly class="w-full rounded-lg border border-sky-200 bg-white px-2.5 py-1.5 text-base font-extrabold text-sky-700 text-center focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <span id="apuCalcHint" class="block text-[10px] text-sky-700 text-center mt-1 font-medium">Auto-calculated (hh:mm)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Group 3: Reasons & Remarks -->
+          <div class="pt-4 border-t border-slate-100">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
+              <i data-lucide="clipboard-list" class="w-4 h-4 text-sky-600"></i> 3. APU Usage Reasons &amp; Remarks
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <!-- Primary Reason -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1" for="fPrimaryReason">
+                  Primary Reason For Using APU <span class="text-rose-500">*</span>
+                </label>
+                <select id="fPrimaryReason" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"></select>
+              </div>
+
+              <!-- Secondary Reason -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1" for="fSecondaryReason">
+                  Secondary Reason for using APU
+                </label>
+                <select id="fSecondaryReason" class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"></select>
+              </div>
+
+              <!-- Remarks -->
+              <div class="md:col-span-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-1" for="fRemarks">
+                  Remarks ( if any delay)
+                </label>
+                <textarea id="fRemarks" rows="2" placeholder="Optional: note GPU/PCA failure ticket #, delay code, or operational remarks..." class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Validation Error Box -->
+          <div id="formErrorBox" class="hidden rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 text-xs text-rose-700 font-medium"></div>
+
+          <!-- Submit Row -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+            <p class="text-xs text-slate-500 flex items-center gap-1.5">
+              <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500 shrink-0"></i>
+              Works offline on any mobile device — entries save instantly &amp; update the Live Excel Sheet.
+            </p>
+            <button type="submit" id="submitEntryBtn" class="tap-target px-6 py-3 rounded-xl bg-sky-600 hover:bg-sky-700 active:scale-[0.99] text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 transition-all">
+              <i data-lucide="send" class="w-4 h-4"></i>
+              Submit &amp; Update Live Sheet
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Recent Entries Mini Preview -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4 text-sky-600"></i> Latest Submissions
+          </h3>
+          <button type="button" id="viewAllSheetBtn" class="text-xs font-semibold text-sky-600 hover:underline flex items-center gap-1">
+            Open Live Excel Sheet <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+        <div id="recentEntriesList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: LIVE EXCEL SHEET ==================== -->
+    <section id="tab-sheet" class="tab-panel hidden space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <!-- Toolbar -->
+        <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-bold text-slate-900">Live APU Excel Sheet</h2>
+              <span id="sheetTotalBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">0 Entries</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Supports unlimited rows across all 17 standard columns. Export to real .xlsx anytime.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="refreshLiveBtn" class="tap-target px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-sky-700 border border-sky-200 text-xs font-bold flex items-center gap-1.5">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync Live
+            </button>
+            <button type="button" id="exportXlsxBtn" class="tap-target px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Download Excel (.xlsx)
+            </button>
+            <button type="button" id="exportCsvBtn" class="tap-target px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-semibold flex items-center gap-1.5">
+              <i data-lucide="download" class="w-4 h-4"></i> CSV
+            </button>
+            <button type="button" id="quickAddFromSheetBtn" class="tap-target px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5">
+              <i data-lucide="plus" class="w-4 h-4"></i> Add Row
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="p-3 sm:px-4 bg-white border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          <div class="relative lg:col-span-2">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input id="sheetSearch" type="text" placeholder="Search flight, reg, bay, reason, remarks..." class="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+          <select id="filterStation" class="px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="">All Stations</option>
+          </select>
+          <select id="filterFleet" class="px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="">All Fleets</option>
+          </select>
+          <select id="filterBayType" class="px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="">All Bay Types</option>
+            <option value="Contact">Contact</option>
+            <option value="Remote">Remote</option>
+            <option value="Open Stand">Open Stand</option>
+          </select>
+        </div>
+
+        <!-- Spreadsheet Table -->
+        <div class="overflow-x-auto excel-scroll">
+          <table class="w-full text-left border-collapse text-xs whitespace-nowrap">
+            <thead>
+              <tr class="bg-slate-800 text-slate-100 font-semibold">
+                <th class="sticky-col bg-slate-800 px-3 py-3 border-r border-slate-700">Entry No.</th>
+                <th class="px-3 py-3 border-r border-slate-700">Date (DD-MMM-YY)</th>
+                <th class="px-3 py-3 border-r border-slate-700">Station</th>
+                <th class="px-3 py-3 border-r border-slate-700">Arr Flight No.</th>
+                <th class="px-3 py-3 border-r border-slate-700">Dep Flight No.</th>
+                <th class="px-3 py-3 border-r border-slate-700">AC Reg.</th>
+                <th class="px-3 py-3 border-r border-slate-700">Fleet</th>
+                <th class="px-3 py-3 border-r border-slate-700">Stand / Bay No.</th>
+                <th class="px-3 py-3 border-r border-slate-700">Bay Type</th>
+                <th class="px-3 py-3 border-r border-slate-700">On-Blocks (LT hh:mm)</th>
+                <th class="px-3 py-3 border-r border-slate-700 bg-sky-900">APU ON TIME</th>
+                <th class="px-3 py-3 border-r border-slate-700">APU OFF after arrival (hh:mm)</th>
+                <th class="px-3 py-3 border-r border-slate-700">APU ON for departure (hh:mm)</th>
+                <th class="px-3 py-3 border-r border-slate-700">Off-Blocks (LT hh:mm)</th>
+                <th class="px-3 py-3 border-r border-slate-700">Primary Reason For Using APU</th>
+                <th class="px-3 py-3 border-r border-slate-700">Secondary Reason for using APU</th>
+                <th class="px-3 py-3 border-r border-slate-700">Remarks ( if any delay)</th>
+                <th class="px-3 py-3 text-center admin-col hidden">Admin Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sheetTableBody" class="divide-y divide-slate-200 bg-white"></tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+          <div id="paginationInfo">Showing 0 of 0 entries</div>
+          <div class="flex items-center gap-2">
+            <select id="pageSizeSelect" class="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs">
+              <option value="25">25 / page</option>
+              <option value="50">50 / page</option>
+              <option value="100">100 / page</option>
+              <option value="500">500 / page</option>
+            </select>
+            <button type="button" id="prevPageBtn" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40">Prev</button>
+            <span id="pageIndicator" class="font-semibold">Page 1</span>
+            <button type="button" id="nextPageBtn" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 disabled:opacity-40">Next</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: ANALYTICS (ADMIN) ==================== -->
+    <section id="tab-analytics" class="tab-panel hidden space-y-4">
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <p class="text-xs font-semibold text-slate-500">Total Entries</p>
+          <p id="kpiTotalEntries" class="text-2xl font-extrabold text-slate-900 mt-1">0</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <p class="text-xs font-semibold text-slate-500">Total APU Runtime</p>
+          <p id="kpiTotalHours" class="text-2xl font-extrabold text-sky-600 mt-1">0h 00m</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <p class="text-xs font-semibold text-slate-500">Avg APU / Flight</p>
+          <p id="kpiAvgMins" class="text-2xl font-extrabold text-amber-600 mt-1">0 min</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <p class="text-xs font-semibold text-slate-500">Ran Throughout</p>
+          <p id="kpiThroughoutPct" class="text-2xl font-extrabold text-rose-600 mt-1">0%</p>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-800 mb-3">APU Minutes by Primary Reason</h3>
+          <div class="relative h-72">
+            <canvas id="reasonChart"></canvas>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-800 mb-3">Entries by Bay Type &amp; Fleet</h3>
+          <div class="relative h-72">
+            <canvas id="fleetChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: ADMIN PANEL ==================== -->
+    <section id="tab-admin" class="tab-panel hidden space-y-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        <!-- Live Cloud Excel / Google Sheets Connector -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="cloud-upload" class="w-5 h-5 text-emerald-600"></i> Live Cloud Excel / Sheet Sync
+            </h3>
+            <span id="pendingSyncBadge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600">0 Pending</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Connect this app to a shared <strong>Microsoft Excel Online</strong> workbook (via Power Automate HTTP Trigger) or <strong>Google Sheet</strong> (via Apps Script Web App) so every mobile submission appends a live row automatically.
+          </p>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1" for="webhookUrlInput">HTTPS Webhook / Apps Script URL</label>
+            <input id="webhookUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="tap-target w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button type="button" id="saveWebhookBtn" class="tap-target px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold">Save Sync URL</button>
+            <button type="button" id="syncPendingBtn" class="tap-target px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Push Pending Rows</button>
+            <button type="button" id="copyScriptBtn" class="tap-target px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Apps Script Code
+            </button>
+          </div>
+        </div>
+
+        <!-- Authorized Admins Management -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="users" class="w-5 h-5 text-sky-600"></i> Authorized Admin Access List
+          </h3>
+          <p class="text-xs text-slate-600">Only listed admins can edit/delete entries, import/clear data, or modify dropdown lists.</p>
+
+          <div id="adminListContainer" class="space-y-2 max-h-44 overflow-y-auto"></div>
+
+          <form id="addAdminForm" class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+            <input id="newAdminEmail" type="email" required placeholder="name@airline.com" class="rounded-xl border border-slate-300 px-3 py-2 text-xs" />
+            <input id="newAdminPin" type="text" required minlength="4" maxlength="12" placeholder="PIN (4+ chars)" class="rounded-xl border border-slate-300 px-3 py-2 text-xs" />
+            <button type="submit" class="rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2 px-3">Add Admin</button>
+          </form>
+        </div>
+
+        <!-- Import & Data Maintenance -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="database" class="w-5 h-5 text-amber-600"></i> Excel Import &amp; Data Controls
+          </h3>
+          <p class="text-xs text-slate-600">Import an existing 17-column Excel (.xlsx) or CSV sheet, or reset sample data before going live.</p>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <label class="tap-target cursor-pointer px-4 py-2 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs font-bold flex items-center gap-1.5">
+              <i data-lucide="upload" class="w-4 h-4"></i> Import Excel / CSV
+              <input id="importFileInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
+            </label>
+            <button type="button" id="clearAllDataBtn" class="tap-target px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5">
+              <i data-lucide="trash-2" class="w-4 h-4"></i> Clear All Entries
+            </button>
+          </div>
+        </div>
+
+        <!-- Customize Dropdown Lists -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="sliders" class="w-5 h-5 text-indigo-600"></i> Manage Stations &amp; APU Reasons
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1" for="addStationInput">Add Station Code</label>
+              <div class="flex gap-1.5">
+                <input id="addStationInput" type="text" maxlength="6" placeholder="e.g. JAI" class="flex-1 uppercase rounded-xl border border-slate-300 px-3 py-1.5 text-xs" />
+                <button type="button" id="addStationBtn" class="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold">Add</button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1" for="addReasonInput">Add APU Reason</label>
+              <div class="flex gap-1.5">
+                <input id="addReasonInput" type="text" placeholder="e.g. Airstart Unit Delay" class="flex-1 rounded-xl border border-slate-300 px-3 py-1.5 text-xs" />
+                <button type="button" id="addReasonBtn" class="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-bold">Add</button>
+              </div>
+            </div>
+          </div>
+          <div id="stationChips" class="flex flex-wrap gap-1.5 pt-1"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-30 shadow-lg">
+    <div class="grid grid-cols-2" id="mobileNavGrid">
+      <button data-tab="entry" class="mobile-nav-btn py-2.5 flex flex-col items-center justify-center gap-0.5 text-sky-600 font-bold text-[11px]">
+        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+        <span>New Entry</span>
+      </button>
+      <button data-tab="sheet" class="mobile-nav-btn py-2.5 flex flex-col items-center justify-center gap-0.5 text-slate-500 font-medium text-[11px]">
+        <i data-lucide="table-2" class="w-5 h-5"></i>
+        <span>Live Sheet (<span id="mobileCountBadge">0</span>)</span>
+      </button>
+      <button data-tab="analytics" class="mobile-nav-btn admin-only hidden py-2.5 flex flex-col items-center justify-center gap-0.5 text-slate-500 font-medium text-[11px]">
+        <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+        <span>Analytics</span>
+      </button>
+      <button data-tab="admin" class="mobile-nav-btn admin-only hidden py-2.5 flex flex-col items-center justify-center gap-0.5 text-slate-500 font-medium text-[11px]">
+        <i data-lucide="shield-check" class="w-5 h-5"></i>
+        <span>Admin</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==================== MODAL: ADMIN LOGIN ==================== -->
+  <div id="adminLoginModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="shield" class="w-5 h-5 text-sky-600"></i> Admin Sign In
+        </h3>
+        <button type="button" id="closeLoginModalBtn" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-600">Authorized operations supervisors can sign in to edit/delete rows, view analytics, and manage Live Excel Sync.</p>
+      <div class="bg-sky-50 border border-sky-200 rounded-xl p-2.5 text-[11px] text-sky-900">
+        <strong>Demo Admin:</strong> <code>admin@ops.aero</code> &nbsp;|&nbsp; <strong>PIN:</strong> <code>2026</code>
+      </div>
+      <form id="adminLoginForm" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1" for="loginEmail">Admin Email</label>
+          <input id="loginEmail" type="email" required value="admin@ops.aero" class="tap-target w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1" for="loginPin">Admin PIN</label>
+          <input id="loginPin" type="password" required placeholder="Enter PIN" class="tap-target w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+        <p id="loginError" class="hidden text-xs text-rose-600 font-semibold"></p>
+        <button type="submit" class="tap-target w-full rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm py-2.5">Unlock Admin Access</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: EDIT ENTRY (ADMIN) ==================== -->
+  <div id="editModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-xl my-auto max-h-[90vh] overflow-y-auto space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 id="editModalTitle" class="text-base font-bold text-slate-900">Edit Entry</h3>
+        <button type="button" id="closeEditModalBtn" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <form id="editEntryForm" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <input type="hidden" id="eId" />
+        <div><label class="font-semibold block mb-1">Date (DD-MMM-YY)</label><input id="eDate" type="text" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">Station</label><input id="eStation" type="text" required class="w-full uppercase rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">Arr Flight No.</label><input id="eArrFlight" type="text" required class="w-full uppercase rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">Dep Flight No.</label><input id="eDepFlight" type="text" required class="w-full uppercase rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">AC Reg.</label><input id="eAcReg" type="text" required class="w-full uppercase rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">Fleet</label><input id="eFleet" type="text" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">Stand / Bay No.</label><input id="eBayNo" type="text" required class="w-full uppercase rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div>
+          <label class="font-semibold block mb-1">Bay Type</label>
+          <select id="eBayType" class="w-full rounded-lg border border-slate-300 px-2.5 py-2 bg-white">
+            <option value="Contact">Contact</option>
+            <option value="Remote">Remote</option>
+            <option value="Open Stand">Open Stand</option>
+          </select>
+        </div>
+        <div><label class="font-semibold block mb-1">On-Blocks (LT hh:mm)</label><input id="eOnBlocks" type="time" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">Off-Blocks (LT hh:mm)</label><input id="eOffBlocks" type="time" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">APU OFF after arrival</label><input id="eApuOffArr" type="time" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">APU ON for departure</label><input id="eApuOnDep" type="time" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">APU ON TIME (hh:mm)</label><input id="eApuOnTime" type="text" required class="w-full rounded-lg border border-sky-300 bg-sky-50 font-bold px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">Primary Reason</label><select id="ePrimaryReason" class="w-full rounded-lg border border-slate-300 px-2.5 py-2 bg-white"></select></div>
+        <div><label class="font-semibold block mb-1">Secondary Reason</label><select id="eSecondaryReason" class="w-full rounded-lg border border-slate-300 px-2.5 py-2 bg-white"></select></div>
+        <div class="sm:col-span-2"><label class="font-semibold block mb-1">Remarks ( if any delay)</label><textarea id="eRemarks" rows="2" class="w-full rounded-lg border border-slate-300 px-2.5 py-2"></textarea></div>
+        <div class="sm:col-span-2 flex justify-end gap-2 pt-2">
+          <button type="button" id="cancelEditBtn" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: CONFIRM ACTION ==================== -->
+  <div id="confirmModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-4">
+      <h3 id="confirmTitle" class="text-base font-bold text-slate-900">Confirm Action</h3>
+      <p id="confirmMsg" class="text-xs text-slate-600"></p>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="confirmCancelBtn" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700">Cancel</button>
+        <button type="button" id="confirmOkBtn" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-20 md:bottom-6 right-4 z-50 space-y-2 max-w-xs w-full pointer-events-none"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // LIVE SHARED SHEET CONFIG: Paste your Google Apps Script (/exec) URL here
+      // before uploading index.html to GitHub so every phone syncs automatically.
+      // =========================================================================
+      const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzlCpBQMHuxEcjiBI9r2MW1X_65aWWeMhEbdo3f5Pub5U6MtGp987rucbo3txfF6XMaQQ/exec';
+
+      // Exact 17 Excel Column Headers requested by user
+      const EXCEL_HEADERS = [
+        'Entry No.',
+        'Date (DD-MMM-YY)',
+        'Station',
+        'Arr Flight No.',
+        'Dep Flight No.',
+        'AC Reg.',
+        'Fleet',
+        'Stand / Bay No.',
+        'Bay Type',
+        'On-Blocks (LT hh:mm)',
+        'APU ON TIME',
+        'APU OFF after arrival (hh:mm) - leave blank if APU ran throughout',
+        'APU ON for departure (hh:mm)',
+        'Off-Blocks (LT hh:mm)',
+        'Primary Reason For Using APU',
+        'Secondary Reason for using APU',
+        'Remarks ( if any delay)'
+      ];
+
+      const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const STORAGE_KEY = 'apu_opslog_state_v1';
+
+      const DEFAULT_STATIONS = ['DEL', 'BOM', 'BLR', 'HYD', 'MAA', 'CCU', 'COK', 'AMD', 'PNQ', 'GOI'];
+      const DEFAULT_FLEETS = ['A320', 'A320neo', 'A321', 'A321neo', 'B737-800', 'B737 MAX', 'B787-8', 'B777-300ER', 'ATR-72'];
+      const DEFAULT_REASONS = [
+        'PCA / ACU Unserviceable',
+        'GPU / FEGP Unserviceable',
+        'GPU / PCA Not Available',
+        'Remote Bay (No FEGP/PCA)',
+        'High Ambient Temperature',
+        'Short Turnaround (<35 min)',
+        'Maintenance / Engineering Requirement',
+        'Flight Crew Request',
+        'Equipment Positioning Delay',
+        'Standard Turnaround Procedure',
+        'Other'
+      ];
+
+      const SAMPLE_ENTRIES = [
+        {
+          id: 'seed-1', entryNo: 1, date: '21-Nov-26', station: 'DEL', arrFlight: '6E-2041', depFlight: '6E-2042',
+          acReg: 'VT-IZK', fleet: 'A320neo', bayNo: '14', bayType: 'Contact', onBlocks: '06:15',
+          apuOffArr: '06:25', apuOnDep: '06:55', offBlocks: '07:10', apuOnTime: '00:25',
+          primaryReason: 'Standard Turnaround Procedure', secondaryReason: 'None', remarks: 'Normal turnaround, FEGP connected on time', synced: true
+        },
+        {
+          id: 'seed-2', entryNo: 2, date: '21-Nov-26', station: 'DEL', arrFlight: 'AI-805', depFlight: 'AI-806',
+          acReg: 'VT-EXN', fleet: 'A321', bayNo: 'R-42', bayType: 'Remote', onBlocks: '07:30',
+          apuOffArr: '', apuOnDep: '', offBlocks: '08:25', apuOnTime: '00:55',
+          primaryReason: 'Remote Bay (No FEGP/PCA)', secondaryReason: 'High Ambient Temperature', remarks: 'APU ran throughout; mobile ACU not available', synced: true
+        },
+        {
+          id: 'seed-3', entryNo: 3, date: '21-Nov-26', station: 'BOM', arrFlight: 'UK-945', depFlight: 'UK-946',
+          acReg: 'VT-TNV', fleet: 'A320neo', bayNo: '48', bayType: 'Contact', onBlocks: '09:10',
+          apuOffArr: '09:30', apuOnDep: '10:05', offBlocks: '10:20', apuOnTime: '00:35',
+          primaryReason: 'PCA / ACU Unserviceable', secondaryReason: 'None', remarks: 'Bay 48 PCA fault reported to airport ops', synced: true
+        },
+        {
+          id: 'seed-4', entryNo: 4, date: '21-Nov-26', station: 'BLR', arrFlight: 'QP-1302', depFlight: 'QP-1303',
+          acReg: 'VT-YAH', fleet: 'B737 MAX', bayNo: '22', bayType: 'Contact', onBlocks: '11:05',
+          apuOffArr: '', apuOnDep: '', offBlocks: '11:35', apuOnTime: '00:30',
+          primaryReason: 'Short Turnaround (<35 min)', secondaryReason: 'None', remarks: '30 min quick turn; no delay', synced: true
+        },
+        {
+          id: 'seed-5', entryNo: 5, date: '21-Nov-26', station: 'HYD', arrFlight: '6E-6118', depFlight: '6E-6119',
+          acReg: 'VT-IUL', fleet: 'A321neo', bayNo: '104', bayType: 'Remote', onBlocks: '13:40',
+          apuOffArr: '13:52', apuOnDep: '14:20', offBlocks: '14:40', apuOnTime: '00:32',
+          primaryReason: 'Equipment Positioning Delay', secondaryReason: 'Remote Bay (No FEGP/PCA)', remarks: 'GPU arrived 10 mins after chocks-on', synced: true
+        },
+        {
+          id: 'seed-6', entryNo: 6, date: '21-Nov-26', station: 'DEL', arrFlight: 'AI-101', depFlight: 'AI-102',
+          acReg: 'VT-ANP', fleet: 'B787-8', bayNo: '19', bayType: 'Contact', onBlocks: '15:00',
+          apuOffArr: '', apuOnDep: '', offBlocks: '16:15', apuOnTime: '01:15',
+          primaryReason: 'GPU / FEGP Unserviceable', secondaryReason: 'Maintenance / Engineering Requirement', remarks: 'FEGP tripped twice; 12 min departure delay', synced: true
+        }
+      ];
+
+      // App State
+      let state = {
+        entries: [],
+        nextEntryNo: 7,
+        stations: [...DEFAULT_STATIONS],
+        fleets: [...DEFAULT_FLEETS],
+        reasons: [...DEFAULT_REASONS],
+        admins: [
+          { email: 'admin@ops.aero', pin: '2026', name: 'Ops Duty Manager' },
+          { email: 'supervisor@ops.aero', pin: '4321', name: 'Ramp Supervisor' }
+        ],
+        webhookUrl: DEFAULT_WEBHOOK_URL,
+        operatorTag: ''
+      };
+
+      let session = {
+        isAdmin: false,
+        adminEmail: '',
+        adminPin: '',
+        activeTab: 'entry',
+        manualApuOverride: false,
+        page: 1,
+        pageSize: 25
+      };
+
+      let reasonChartInst = null;
+      let fleetChartInst = null;
+      let pendingConfirmCallback = null;
+
+      // Safe localStorage helpers
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && Array.isArray(parsed.entries)) {
+              state = Object.assign(state, parsed);
+              if (!state.webhookUrl && DEFAULT_WEBHOOK_URL) state.webhookUrl = DEFAULT_WEBHOOK_URL;
+              return;
+            }
+          }
+        } catch (e) {
+          // Ignore storage restrictions
+        }
+        if (DEFAULT_WEBHOOK_URL) {
+          state.entries = [];
+          state.nextEntryNo = 1;
+        } else {
+          state.entries = JSON.parse(JSON.stringify(SAMPLE_ENTRIES));
+          state.nextEntryNo = 7;
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+          // Ignore storage quota errors
+        }
+      }
+
+      // Formatting & Time Math
+      function formatDateToDDMMMYY(isoDate) {
+        if (!isoDate || !isoDate.includes('-')) return '';
+        const parts = isoDate.split('-');
+        if (parts.length !== 3) return isoDate;
+        const yy = parts[0].slice(-2);
+        const mm = parseInt(parts[1], 10) - 1;
+        const dd = parts[2].padStart(2, '0');
+        if (mm < 0 || mm > 11) return isoDate;
+        return `${dd}-${MONTHS[mm]}-${yy}`;
+      }
+
+      function getTodayISO() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+
+      function getNowHHMM() {
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      }
+
+      function timeToMinutes(hhmm) {
+        if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm.trim())) return null;
+        const [h, m] = hhmm.trim().split(':').map(Number);
+        if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+        return h * 60 + m;
+      }
+
+      function diffMinutes(startMin, endMin) {
+        if (startMin === null || endMin === null) return 0;
+        let diff = endMin - startMin;
+        if (diff < 0) diff += 24 * 60; // Midnight rollover
+        return diff;
+      }
+
+      function minutesToHHMM(totalMins) {
+        if (totalMins === null || isNaN(totalMins) || totalMins < 0) return '00:00';
+        const h = Math.floor(totalMins / 60);
+        const m = Math.round(totalMins % 60);
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      }
+
+      function calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks) {
+        const onM = timeToMinutes(onBlocks);
+        const offM = timeToMinutes(offBlocks);
+        if (onM === null || offM === null) return { text: '', mins: 0, mode: 'Enter On-Blocks & Off-Blocks' };
+
+        const apuOffM = timeToMinutes(apuOffArr);
+        const apuOnM = timeToMinutes(apuOnDep);
+
+        // If APU OFF after arrival is blank => APU ran throughout
+        if (apuOffM === null) {
+          const total = diffMinutes(onM, offM);
+          return { text: minutesToHHMM(total), mins: total, mode: `Ran throughout (${total} min)` };
+        }
+
+        // Otherwise segment 1: On-Blocks -> APU OFF after arrival
+        const seg1 = diffMinutes(onM, apuOffM);
+        // Segment 2 (optional if APU ON for departure is provided): APU ON for dep -> Off-Blocks
+        const seg2 = apuOnM !== null ? diffMinutes(apuOnM, offM) : 0;
+        const total = seg1 + seg2;
+        return {
+          text: minutesToHHMM(total),
+          mins: total,
+          mode: apuOnM !== null ? `Arr ${seg1}m + Dep ${seg2}m = ${total}m` : `Arr segment (${total} min)`
+        };
+      }
+
+      // Toast Notification
+      function showToast(message, type = 'success') {
+        const container = document.getElementById('toastContainer');
+        const el = document.createElement('div');
+        const colors = type === 'error'
+          ? 'bg-rose-600 text-white'
+          : type === 'warning'
+            ? 'bg-amber-600 text-white'
+            : 'bg-slate-900 text-white';
+        el.className = `toast-enter pointer-events-auto ${colors} px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center justify-between gap-2`;
+        el.textContent = message;
+        container.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transition = 'opacity 0.25s';
+          setTimeout(() => el.remove(), 260);
+        }, 3200);
+      }
+
+      // Populate Dropdowns
+      function populateSelectOptions() {
+        const stationList = document.getElementById('stationList');
+        stationList.innerHTML = state.stations.map(s => `<option value="${escapeHtml(s)}"></option>`).join('');
+
+        const fleetSel = document.getElementById('fFleet');
+        const prevFleet = fleetSel.value;
+        fleetSel.innerHTML = state.fleets.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+        if (prevFleet && state.fleets.includes(prevFleet)) fleetSel.value = prevFleet;
+
+        const reasonOpts = state.reasons.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join('');
+        const secOpts = `<option value="None">None / N/A</option>` + reasonOpts;
+
+        ['fPrimaryReason', 'ePrimaryReason'].forEach(id => {
+          const el = document.getElementById(id);
+          const prev = el.value;
+          el.innerHTML = reasonOpts;
+          if (prev) el.value = prev;
+        });
+
+        ['fSecondaryReason', 'eSecondaryReason'].forEach(id => {
+          const el = document.getElementById(id);
+          const prev = el.value;
+          el.innerHTML = secOpts;
+          if (prev) el.value = prev;
+        });
+
+        // Filter dropdowns on Live Sheet
+        const uniqueStations = [...new Set([...state.stations, ...state.entries.map(e => e.station)])].filter(Boolean).sort();
+        const fStation = document.getElementById('filterStation');
+        const curSt = fStation.value;
+        fStation.innerHTML = '<option value="">All Stations</option>' + uniqueStations.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        fStation.value = curSt;
+
+        const uniqueFleets = [...new Set([...state.fleets, ...state.entries.map(e => e.fleet)])].filter(Boolean).sort();
+        const fFleet = document.getElementById('filterFleet');
+        const curFl = fFleet.value;
+        fFleet.innerHTML = '<option value="">All Fleets</option>' + uniqueFleets.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+        fFleet.value = curFl;
+
+        // Admin station chips
+        const chips = document.getElementById('stationChips');
+        chips.innerHTML = state.stations.map(s => `
+          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[11px] font-semibold">
+            ${escapeHtml(s)}
+            <button type="button" data-del-station="${escapeHtml(s)}" class="text-slate-400 hover:text-rose-600">&times;</button>
+          </span>
+        `).join('');
+      }
+
+      function escapeHtml(str) {
+        return String(str == null ? '' : str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      // Live APU Calculation on Form
+      function updateFormApuCalc() {
+        if (session.manualApuOverride) return;
+        const onBlocks = document.getElementById('fOnBlocks').value;
+        const apuOffArr = document.getElementById('fApuOffArr').value;
+        const apuOnDep = document.getElementById('fApuOnDep').value;
+        const offBlocks = document.getElementById('fOffBlocks').value;
+        const res = calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks);
+        document.getElementById('fApuOnTime').value = res.text;
+        document.getElementById('apuCalcHint').textContent = res.mode;
+      }
+
+      function updateFormHeader() {
+        document.getElementById('fEntryNo').value = state.nextEntryNo;
+        document.getElementById('nextEntryBadge').textContent = `Entry #${state.nextEntryNo}`;
+        const dateEl = document.getElementById('fDate');
+        if (!dateEl.value) dateEl.value = getTodayISO();
+        document.getElementById('fDatePreview').textContent = `Excel format: ${formatDateToDDMMMYY(dateEl.value)}`;
+      }
+
+      // Switch Tabs
+      function switchTab(tabName) {
+        if ((tabName === 'analytics' || tabName === 'admin') && !session.isAdmin) {
+          openLoginModal();
+          return;
+        }
+        session.activeTab = tabName;
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+        const target = document.getElementById(`tab-${tabName}`);
+        if (target) target.classList.remove('hidden');
+
+        // Desktop nav styling
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+          const active = btn.dataset.tab === tabName;
+          btn.classList.toggle('bg-sky-600', active);
+          btn.classList.toggle('text-white', active);
+          btn.classList.toggle('text-slate-300', !active);
+        });
+
+        // Mobile nav styling
+        document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+          const active = btn.dataset.tab === tabName;
+          btn.classList.toggle('text-sky-600', active);
+          btn.classList.toggle('font-bold', active);
+          btn.classList.toggle('text-slate-500', !active);
+          btn.classList.toggle('font-medium', !active);
+        });
+
+        if (tabName === 'sheet') { renderSheetTable(); if (state.webhookUrl) pullLiveSheet(true); }
+        if (tabName === 'analytics') renderAnalytics();
+        if (tabName === 'admin') renderAdminPanel();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // Update Role UI
+      function updateRoleUI() {
+        const adminEls = document.querySelectorAll('.admin-only');
+        const adminCols = document.querySelectorAll('.admin-col');
+        const mobileGrid = document.getElementById('mobileNavGrid');
+        const roleBtn = document.getElementById('roleBtn');
+        const roleBtnText = document.getElementById('roleBtnText');
+        const roleBadge = document.getElementById('roleBadge');
+        const roleBanner = document.getElementById('roleBanner');
+        const roleBannerMsg = document.getElementById('roleBannerMsg');
+
+        if (session.isAdmin) {
+          adminEls.forEach(el => el.classList.remove('hidden'));
+          adminCols.forEach(el => el.classList.remove('hidden'));
+          mobileGrid.classList.remove('grid-cols-2');
+          mobileGrid.classList.add('grid-cols-4');
+          roleBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors bg-emerald-600 hover:bg-emerald-700 text-white';
+          roleBtnText.textContent = 'Sign Out Admin';
+          roleBadge.textContent = `Admin: ${session.adminEmail}`;
+          roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold bg-emerald-600 text-white';
+          roleBanner.className = 'bg-emerald-50 border-b border-emerald-200 text-emerald-900 text-xs px-4 py-2';
+          roleBannerMsg.textContent = 'Full access enabled: edit/delete rows, analytics, and Live Excel Sync settings.';
+        } else {
+          adminEls.forEach(el => el.classList.add('hidden'));
+          adminCols.forEach(el => el.classList.add('hidden'));
+          mobileGrid.classList.remove('grid-cols-4');
+          mobileGrid.classList.add('grid-cols-2');
+          roleBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40';
+          roleBtnText.textContent = 'Admin Login';
+          roleBadge.textContent = 'Default Operator';
+          roleBadge.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold bg-sky-600 text-white';
+          roleBanner.className = 'bg-sky-50 border-b border-sky-200 text-sky-900 text-xs px-4 py-2';
+          roleBannerMsg.textContent = 'All staff can log new APU entries directly. Admin access required to edit, delete, or change settings.';
+          if (session.activeTab === 'analytics' || session.activeTab === 'admin') {
+            switchTab('entry');
+          }
+        }
+        renderSheetTable();
+      }
+
+      // Sync Status Indicator
+      function updateSyncIndicator() {
+        const pending = state.entries.filter(e => !e.synced).length;
+        const dot = document.getElementById('syncDot');
+        const label = document.getElementById('syncLabel');
+        const badge = document.getElementById('pendingSyncBadge');
+        badge.textContent = `${pending} Pending`;
+
+        if (!state.webhookUrl) {
+          dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+          label.textContent = 'Local Excel Ready';
+        } else if (pending > 0) {
+          dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+          label.textContent = `${pending} Pending Sync`;
+        } else {
+          dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+          label.textContent = 'Cloud Synced';
+        }
+      }
+
+      function entryToPayload(entry, action = 'append', adminSecret = '') {
+        return {
+          action,
+          adminSecret,
+          'Entry No.': entry.entryNo,
+          'Date (DD-MMM-YY)': entry.date,
+          'Station': entry.station,
+          'Arr Flight No.': entry.arrFlight,
+          'Dep Flight No.': entry.depFlight,
+          'AC Reg.': entry.acReg,
+          'Fleet': entry.fleet,
+          'Stand / Bay No.': entry.bayNo,
+          'Bay Type': entry.bayType,
+          'On-Blocks (LT hh:mm)': entry.onBlocks,
+          'APU ON TIME': entry.apuOnTime,
+          'APU OFF after arrival (hh:mm) - leave blank if APU ran throughout': entry.apuOffArr || '',
+          'APU ON for departure (hh:mm)': entry.apuOnDep || '',
+          'Off-Blocks (LT hh:mm)': entry.offBlocks,
+          'Primary Reason For Using APU': entry.primaryReason,
+          'Secondary Reason for using APU': entry.secondaryReason || '',
+          'Remarks ( if any delay)': entry.remarks || ''
+        };
+      }
+
+      // Push single entry to live Google Sheet / Excel Online Webhook
+      async function pushEntryToWebhook(entry) {
+        if (!state.webhookUrl || !state.webhookUrl.startsWith('https://')) return false;
+        try {
+          const resp = await fetch(state.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(entryToPayload(entry, 'append'))
+          });
+          if (resp.ok) {
+            try {
+              const data = await resp.json();
+              if (data && data.entryNo) {
+                entry.entryNo = Number(data.entryNo);
+                if (entry.entryNo >= state.nextEntryNo) state.nextEntryNo = entry.entryNo + 1;
+              }
+            } catch (_) {}
+            entry.synced = true;
+            saveState();
+            updateFormHeader();
+            renderRecentEntries();
+            renderSheetTable();
+            updateSyncIndicator();
+            return true;
+          } else if (resp.type === 'opaque') {
+            entry.synced = true;
+            saveState();
+            updateSyncIndicator();
+            return true;
+          }
+        } catch (err) {
+          // Offline or network failure: keep queued locally
+        }
+        return false;
+      }
+
+      // Admin-only Update or Delete on Live Cloud Sheet
+      async function pushAdminAction(entry, action) {
+        if (!state.webhookUrl || !state.webhookUrl.startsWith('https://') || !session.isAdmin) return false;
+        try {
+          const resp = await fetch(state.webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(entryToPayload(entry, action, session.adminPin))
+          });
+          if (resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            if (data && data.status === 'error') {
+              showToast(data.message || 'Cloud sheet rejected admin action.', 'error');
+              return false;
+            }
+            return true;
+          }
+        } catch (err) {
+          showToast('Saved locally; could not reach cloud sheet.', 'warning');
+        }
+        return false;
+      }
+
+      // Pull all live entries from shared Google Sheet (GET)
+      async function pullLiveSheet(silent = false) {
+        if (!state.webhookUrl || !state.webhookUrl.startsWith('https://')) {
+          if (!silent) showToast('Configure a Live Cloud Sync URL in Admin Panel to pull shared rows.', 'warning');
+          return false;
+        }
+        try {
+          const resp = await fetch(state.webhookUrl, { method: 'GET' });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const data = await resp.json();
+          if (data && Array.isArray(data.rows)) {
+            const pendingLocal = state.entries.filter(e => !e.synced);
+            const remoteEntries = data.rows.map((r, idx) => ({
+              id: `cloud-${r['Entry No.'] || idx + 1}`,
+              entryNo: Number(r['Entry No.']) || (idx + 1),
+              date: String(r['Date (DD-MMM-YY)'] || ''),
+              station: String(r['Station'] || '').toUpperCase(),
+              arrFlight: String(r['Arr Flight No.'] || '').toUpperCase(),
+              depFlight: String(r['Dep Flight No.'] || '').toUpperCase(),
+              acReg: String(r['AC Reg.'] || '').toUpperCase(),
+              fleet: String(r['Fleet'] || ''),
+              bayNo: String(r['Stand / Bay No.'] || '').toUpperCase(),
+              bayType: String(r['Bay Type'] || 'Contact'),
+              onBlocks: String(r['On-Blocks (LT hh:mm)'] || ''),
+              apuOnTime: String(r['APU ON TIME'] || '00:00'),
+              apuOffArr: String(r['APU OFF after arrival (hh:mm) - leave blank if APU ran throughout'] || ''),
+              apuOnDep: String(r['APU ON for departure (hh:mm)'] || ''),
+              offBlocks: String(r['Off-Blocks (LT hh:mm)'] || ''),
+              primaryReason: String(r['Primary Reason For Using APU'] || ''),
+              secondaryReason: String(r['Secondary Reason for using APU'] || 'None'),
+              remarks: String(r['Remarks ( if any delay)'] || ''),
+              synced: true
+            }));
+            const maxRemote = remoteEntries.reduce((m, e) => Math.max(m, e.entryNo), 0);
+            let nextNo = maxRemote + 1;
+            pendingLocal.forEach(p => { p.entryNo = nextNo++; });
+            state.entries = [...remoteEntries, ...pendingLocal];
+            state.nextEntryNo = nextNo;
+            saveState();
+            populateSelectOptions();
+            updateFormHeader();
+            renderRecentEntries();
+            renderSheetTable();
+            if (session.activeTab === 'analytics') renderAnalytics();
+            updateSyncIndicator();
+            if (!silent) showToast(`Synced ${remoteEntries.length} live entries from shared sheet!`);
+            return true;
+          }
+        } catch (err) {
+          if (!silent) showToast('Offline or sheet unreachable — showing cached rows.', 'warning');
+        }
+        return false;
+      }
+
+      // Render Recent Entries on Entry Tab
+      function renderRecentEntries() {
+        const container = document.getElementById('recentEntriesList');
+        const recent = [...state.entries].sort((a, b) => b.entryNo - a.entryNo).slice(0, 6);
+        if (!recent.length) {
+          container.innerHTML = '<p class="text-xs text-slate-400 col-span-full py-2">No entries logged yet.</p>';
+          return;
+        }
+        container.innerHTML = recent.map(e => `
+          <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-900">#${e.entryNo} &middot; ${escapeHtml(e.station)} &middot; ${escapeHtml(e.acReg)}</span>
+              <span class="px-2 py-0.5 rounded-md font-bold bg-sky-100 text-sky-800">${escapeHtml(e.apuOnTime)}</span>
+            </div>
+            <div class="text-slate-600 flex items-center justify-between">
+              <span>${escapeHtml(e.arrFlight)} / ${escapeHtml(e.depFlight)} (${escapeHtml(e.fleet)})</span>
+              <span class="text-[11px] text-slate-500">Bay ${escapeHtml(e.bayNo)}</span>
+            </div>
+            <div class="text-[11px] text-slate-500 truncate">${escapeHtml(e.primaryReason)}</div>
+          </div>
+        `).join('');
+      }
+
+      // Filter & Render Live Excel Sheet
+      function getFilteredEntries() {
+        const q = (document.getElementById('sheetSearch').value || '').trim().toLowerCase();
+        const st = document.getElementById('filterStation').value;
+        const fl = document.getElementById('filterFleet').value;
+        const bt = document.getElementById('filterBayType').value;
+
+        return state.entries.filter(e => {
+          if (st && e.station !== st) return false;
+          if (fl && e.fleet !== fl) return false;
+          if (bt && e.bayType !== bt) return false;
+          if (q) {
+            const hay = `${e.entryNo} ${e.date} ${e.station} ${e.arrFlight} ${e.depFlight} ${e.acReg} ${e.fleet} ${e.bayNo} ${e.bayType} ${e.primaryReason} ${e.secondaryReason} ${e.remarks}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        }).sort((a, b) => b.entryNo - a.entryNo);
+      }
+
+      function renderSheetTable() {
+        const allCount = state.entries.length;
+        document.getElementById('desktopCountBadge').textContent = allCount;
+        document.getElementById('mobileCountBadge').textContent = allCount;
+        document.getElementById('sheetTotalBadge').textContent = `${allCount} ${allCount === 1 ? 'Entry' : 'Entries'}`;
+
+        const filtered = getFilteredEntries();
+        const totalPages = Math.max(1, Math.ceil(filtered.length / session.pageSize));
+        if (session.page > totalPages) session.page = totalPages;
+
+        const startIdx = (session.page - 1) * session.pageSize;
+        const pageRows = filtered.slice(startIdx, startIdx + session.pageSize);
+
+        const tbody = document.getElementById('sheetTableBody');
+        if (!pageRows.length) {
+          tbody.innerHTML = `<tr><td colspan="${session.isAdmin ? 18 : 17}" class="px-4 py-8 text-center text-slate-400">No matching entries found.</td></tr>`;
+        } else {
+          tbody.innerHTML = pageRows.map(e => `
+            <tr class="hover:bg-sky-50/50 transition-colors">
+              <td class="sticky-col bg-white px-3 py-2.5 font-bold text-slate-900 border-r border-slate-200">#${e.entryNo}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100">${escapeHtml(e.date)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-semibold">${escapeHtml(e.station)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100">${escapeHtml(e.arrFlight)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100">${escapeHtml(e.depFlight)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-semibold text-slate-800">${escapeHtml(e.acReg)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100">${escapeHtml(e.fleet)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100">${escapeHtml(e.bayNo)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100">
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${e.bayType === 'Remote' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${escapeHtml(e.bayType)}</span>
+              </td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-mono">${escapeHtml(e.onBlocks)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-mono font-bold text-sky-700 bg-sky-50/40">${escapeHtml(e.apuOnTime)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-mono text-slate-600">${e.apuOffArr ? escapeHtml(e.apuOffArr) : '<span class="text-amber-600 italic text-[11px]">Ran throughout</span>'}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-mono text-slate-600">${escapeHtml(e.apuOnDep || '—')}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-mono">${escapeHtml(e.offBlocks)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-medium text-slate-800">${escapeHtml(e.primaryReason)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 text-slate-600">${escapeHtml(e.secondaryReason || 'None')}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 text-slate-600 max-w-xs truncate" title="${escapeHtml(e.remarks)}">${escapeHtml(e.remarks || '—')}</td>
+              <td class="px-3 py-2.5 text-center admin-col ${session.isAdmin ? '' : 'hidden'}">
+                <div class="inline-flex items-center gap-1.5">
+                  <button type="button" data-edit-id="${escapeHtml(e.id)}" class="px-2 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold">Edit</button>
+                  <button type="button" data-del-id="${escapeHtml(e.id)}" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold">Del</button>
+                </div>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        const showStart = filtered.length ? startIdx + 1 : 0;
+        const showEnd = Math.min(startIdx + session.pageSize, filtered.length);
+        document.getElementById('paginationInfo').textContent = `Showing ${showStart}–${showEnd} of ${filtered.length} entries`;
+        document.getElementById('pageIndicator').textContent = `Page ${session.page} / ${totalPages}`;
+        document.getElementById('prevPageBtn').disabled = session.page <= 1;
+        document.getElementById('nextPageBtn').disabled = session.page >= totalPages;
+      }
+
+      // Export Excel (.xlsx)
+      function exportToExcel() {
+        const sorted = [...state.entries].sort((a, b) => a.entryNo - b.entryNo);
+        const rows = sorted.map(e => [
+          e.entryNo, e.date, e.station, e.arrFlight, e.depFlight, e.acReg, e.fleet,
+          e.bayNo, e.bayType, e.onBlocks, e.apuOnTime, e.apuOffArr || '',
+          e.apuOnDep || '', e.offBlocks, e.primaryReason, e.secondaryReason === 'None' ? '' : (e.secondaryReason || ''), e.remarks || ''
+        ]);
+
+        const filename = `APU_Usage_Live_Log_${getTodayISO()}.xlsx`;
+
+        if (typeof window.XLSX !== 'undefined') {
+          const aoa = [EXCEL_HEADERS, ...rows];
+          const ws = window.XLSX.utils.aoa_to_sheet(aoa);
+          ws['!cols'] = [
+            { wch: 10 }, { wch: 16 }, { wch: 9 }, { wch: 14 }, { wch: 14 }, { wch: 11 },
+            { wch: 11 }, { wch: 14 }, { wch: 11 }, { wch: 18 }, { wch: 13 }, { wch: 28 },
+            { wch: 22 }, { wch: 18 }, { wch: 30 }, { wch: 28 }, { wch: 34 }
+          ];
+          const wb = window.XLSX.utils.book_new();
+          window.XLSX.utils.book_append_sheet(wb, ws, 'APU Live Log');
+          window.XLSX.writeFile(wb, filename);
+          showToast(`Downloaded ${filename} (${sorted.length} rows)`);
+        } else {
+          exportToCsv();
+        }
+      }
+
+      // Export CSV
+      function exportToCsv() {
+        const sorted = [...state.entries].sort((a, b) => a.entryNo - b.entryNo);
+        const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+        const lines = [EXCEL_HEADERS.map(esc).join(',')];
+        sorted.forEach(e => {
+          lines.push([
+            e.entryNo, e.date, e.station, e.arrFlight, e.depFlight, e.acReg, e.fleet,
+            e.bayNo, e.bayType, e.onBlocks, e.apuOnTime, e.apuOffArr || '',
+            e.apuOnDep || '', e.offBlocks, e.primaryReason, e.secondaryReason === 'None' ? '' : (e.secondaryReason || ''), e.remarks || ''
+          ].map(esc).join(','));
+        });
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `APU_Usage_Live_Log_${getTodayISO()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast(`Downloaded CSV (${sorted.length} rows)`);
+      }
+
+      // Render Analytics (Admin)
+      function renderAnalytics() {
+        const entries = state.entries;
+        const count = entries.length;
+        let totalMins = 0;
+        let throughoutCount = 0;
+        const reasonMins = {};
+        const fleetCounts = {};
+
+        entries.forEach(e => {
+          const m = timeToMinutes(e.apuOnTime) || 0;
+          totalMins += m;
+          if (!e.apuOffArr) throughoutCount++;
+          const r = e.primaryReason || 'Unspecified';
+          reasonMins[r] = (reasonMins[r] || 0) + m;
+          const fl = e.fleet || 'Other';
+          fleetCounts[fl] = (fleetCounts[fl] || 0) + 1;
+        });
+
+        const hrs = Math.floor(totalMins / 60);
+        const remMins = totalMins % 60;
+        document.getElementById('kpiTotalEntries').textContent = count;
+        document.getElementById('kpiTotalHours').textContent = `${hrs}h ${String(remMins).padStart(2, '0')}m`;
+        document.getElementById('kpiAvgMins').textContent = count ? `${Math.round(totalMins / count)} min` : '0 min';
+        document.getElementById('kpiThroughoutPct').textContent = count ? `${Math.round((throughoutCount / count) * 100)}%` : '0%';
+
+        if (typeof window.Chart === 'undefined') return;
+
+        // Reason Chart
+        const rLabels = Object.keys(reasonMins);
+        const rData = Object.values(reasonMins);
+        if (reasonChartInst) reasonChartInst.destroy();
+        reasonChartInst = new window.Chart(document.getElementById('reasonChart'), {
+          type: 'bar',
+          data: {
+            labels: rLabels,
+            datasets: [{
+              label: 'Total APU Minutes',
+              data: rData,
+              backgroundColor: '#0284c7',
+              borderRadius: 6
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true } }
+          }
+        });
+
+        // Fleet Chart
+        const fLabels = Object.keys(fleetCounts);
+        const fData = Object.values(fleetCounts);
+        if (fleetChartInst) fleetChartInst.destroy();
+        fleetChartInst = new window.Chart(document.getElementById('fleetChart'), {
+          type: 'doughnut',
+          data: {
+            labels: fLabels,
+            datasets: [{
+              data: fData,
+              backgroundColor: ['#0284c7', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#14b8a6', '#f97316']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+          }
+        });
+      }
+
+      // Render Admin Panel
+      function renderAdminPanel() {
+        document.getElementById('webhookUrlInput').value = state.webhookUrl || '';
+        const list = document.getElementById('adminListContainer');
+        list.innerHTML = state.admins.map((a, idx) => `
+          <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+            <div>
+              <span class="font-bold text-slate-800">${escapeHtml(a.email)}</span>
+              <span class="text-slate-400 ml-2">PIN: ••••</span>
+            </div>
+            ${state.admins.length > 1 ? `<button type="button" data-remove-admin="${idx}" class="text-rose-600 hover:underline font-semibold">Remove</button>` : '<span class="text-[11px] text-slate-400">Primary</span>'}
+          </div>
+        `).join('');
+        updateSyncIndicator();
+      }
+
+      // Modals
+      function openLoginModal() {
+        document.getElementById('loginError').classList.add('hidden');
+        document.getElementById('loginPin').value = '';
+        document.getElementById('adminLoginModal').classList.remove('hidden');
+        document.getElementById('loginPin').focus();
+      }
+
+      function closeLoginModal() {
+        document.getElementById('adminLoginModal').classList.add('hidden');
+      }
+
+      function openEditModal(entryId) {
+        const entry = state.entries.find(e => e.id === entryId);
+        if (!entry) return;
+        document.getElementById('editModalTitle').textContent = `Edit Entry #${entry.entryNo}`;
+        document.getElementById('eId').value = entry.id;
+        document.getElementById('eDate').value = entry.date;
+        document.getElementById('eStation').value = entry.station;
+        document.getElementById('eArrFlight').value = entry.arrFlight;
+        document.getElementById('eDepFlight').value = entry.depFlight;
+        document.getElementById('eAcReg').value = entry.acReg;
+        document.getElementById('eFleet').value = entry.fleet;
+        document.getElementById('eBayNo').value = entry.bayNo;
+        document.getElementById('eBayType').value = entry.bayType;
+        document.getElementById('eOnBlocks').value = entry.onBlocks;
+        document.getElementById('eOffBlocks').value = entry.offBlocks;
+        document.getElementById('eApuOffArr').value = entry.apuOffArr || '';
+        document.getElementById('eApuOnDep').value = entry.apuOnDep || '';
+        document.getElementById('eApuOnTime').value = entry.apuOnTime;
+        document.getElementById('ePrimaryReason').value = entry.primaryReason;
+        document.getElementById('eSecondaryReason').value = entry.secondaryReason || 'None';
+        document.getElementById('eRemarks').value = entry.remarks || '';
+        document.getElementById('editModal').classList.remove('hidden');
+      }
+
+      function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+      }
+
+      function showConfirm(title, message, onConfirm) {
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMsg').textContent = message;
+        pendingConfirmCallback = onConfirm;
+        document.getElementById('confirmModal').classList.remove('hidden');
+      }
+
+      function closeConfirm() {
+        document.getElementById('confirmModal').classList.add('hidden');
+        pendingConfirmCallback = null;
+      }
+
+      // Copy Two-Way Apps Script snippet (GET live rows + POST append + Admin-only update/delete)
+      function copyAppsScriptCode() {
+        const code = [
+          "const ADMIN_SECRET_KEY = '2026'; // Change this to match your Admin PIN",
+          "const HEADERS = " + JSON.stringify(EXCEL_HEADERS) + ";",
+          "",
+          "function getSheet_() {",
+          "  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();",
+          "  if (sheet.getLastRow() === 0) sheet.appendRow(HEADERS);",
+          "  return sheet;",
+          "}",
+          "",
+          "function jsonOut_(obj) {",
+          "  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);",
+          "}",
+          "",
+          "function doGet() {",
+          "  var sheet = getSheet_();",
+          "  var values = sheet.getDataRange().getDisplayValues();",
+          "  if (values.length <= 1) return jsonOut_({ status: 'ok', rows: [] });",
+          "  var hdr = values[0];",
+          "  var rows = [];",
+          "  for (var i = 1; i < values.length; i++) {",
+          "    if (!values[i][0] && !values[i][2]) continue;",
+          "    var obj = {};",
+          "    for (var j = 0; j < hdr.length; j++) obj[hdr[j]] = values[i][j] || '';",
+          "    rows.push(obj);",
+          "  }",
+          "  return jsonOut_({ status: 'ok', rows: rows });",
+          "}",
+          "",
+          "function doPost(e) {",
+          "  var lock = LockService.getScriptLock();",
+          "  lock.waitLock(10000);",
+          "  try {",
+          "    var sheet = getSheet_();",
+          "    var data = JSON.parse(e.postData.contents);",
+          "    var action = data.action || 'append';",
+          "    if (action === 'append') {",
+          "      var lastRow = sheet.getLastRow();",
+          "      var nextNo = 1;",
+          "      if (lastRow > 1) {",
+          "        var existingNos = sheet.getRange(2, 1, lastRow - 1, 1).getValues();",
+          "        for (var k = 0; k < existingNos.length; k++) {",
+          "          var n = Number(existingNos[k][0]) || 0;",
+          "          if (n >= nextNo) nextNo = n + 1;",
+          "        }",
+          "      }",
+          "      data['Entry No.'] = nextNo;",
+          "      sheet.appendRow(HEADERS.map(function(h) { return data[h] !== undefined ? data[h] : ''; }));",
+          "      return jsonOut_({ status: 'ok', entryNo: nextNo });",
+          "    }",
+          "    if (String(data.adminSecret || '') !== ADMIN_SECRET_KEY) {",
+          "      return jsonOut_({ status: 'error', message: 'Admin authorization required' });",
+          "    }",
+          "    var targetNo = Number(data['Entry No.']);",
+          "    var allNos = sheet.getRange(2, 1, Math.max(1, sheet.getLastRow() - 1), 1).getValues();",
+          "    var rowIdx = -1;",
+          "    for (var r = 0; r < allNos.length; r++) {",
+          "      if (Number(allNos[r][0]) === targetNo) { rowIdx = r + 2; break; }",
+          "    }",
+          "    if (rowIdx === -1) return jsonOut_({ status: 'error', message: 'Entry not found' });",
+          "    if (action === 'delete') {",
+          "      sheet.deleteRow(rowIdx);",
+          "      return jsonOut_({ status: 'ok' });",
+          "    }",
+          "    if (action === 'update') {",
+          "      var updated = HEADERS.map(function(h) { return data[h] !== undefined ? data[h] : ''; });",
+          "      sheet.getRange(rowIdx, 1, 1, HEADERS.length).setValues([updated]);",
+          "      return jsonOut_({ status: 'ok' });",
+          "    }",
+          "    return jsonOut_({ status: 'error', message: 'Unknown action' });",
+          "  } finally {",
+          "    lock.releaseLock();",
+          "  }",
+          "}"
+        ].join("\n");
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(() => showToast('Google Apps Script copied to clipboard!'));
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = code;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+          showToast('Google Apps Script copied to clipboard!');
+        }
+      }
+
+      // Bind All Event Listeners
+      function bindEvents() {
+        // Navigation buttons
+        document.querySelectorAll('.nav-btn, .mobile-nav-btn').forEach(btn => {
+          btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        document.getElementById('viewAllSheetBtn').addEventListener('click', () => switchTab('sheet'));
+        document.getElementById('quickAddFromSheetBtn').addEventListener('click', () => switchTab('entry'));
+
+        // Operator tag persistence
+        const opInput = document.getElementById('operatorTagInput');
+        opInput.value = state.operatorTag || '';
+        opInput.addEventListener('input', () => {
+          state.operatorTag = opInput.value.trim();
+          saveState();
+        });
+
+        // Date preview
+        document.getElementById('fDate').addEventListener('change', updateFormHeader);
+
+        // Quick "Now" buttons
+        document.querySelectorAll('.now-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const target = document.getElementById(btn.dataset.now);
+            if (target && !target.disabled) {
+              target.value = getNowHHMM();
+              updateFormApuCalc();
+            }
+          });
+        });
+
+        // Ran throughout checkbox
+        document.getElementById('fRanThroughout').addEventListener('change', (e) => {
+          const offArr = document.getElementById('fApuOffArr');
+          const onDep = document.getElementById('fApuOnDep');
+          if (e.target.checked) {
+            offArr.value = '';
+            onDep.value = '';
+            offArr.disabled = true;
+            onDep.disabled = true;
+          } else {
+            offArr.disabled = false;
+            onDep.disabled = false;
+          }
+          updateFormApuCalc();
+        });
+
+        // Recalculate APU ON TIME on any time change
+        ['fOnBlocks', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'].forEach(id => {
+          document.getElementById(id).addEventListener('input', updateFormApuCalc);
+        });
+
+        // Manual override toggle
+        document.getElementById('toggleManualApuBtn').addEventListener('click', () => {
+          session.manualApuOverride = !session.manualApuOverride;
+          const inp = document.getElementById('fApuOnTime');
+          const btn = document.getElementById('toggleManualApuBtn');
+          inp.readOnly = !session.manualApuOverride;
+          btn.textContent = session.manualApuOverride ? 'Auto-Calc' : 'Override';
+          if (session.manualApuOverride) {
+            document.getElementById('apuCalcHint').textContent = 'Manual entry (hh:mm)';
+            inp.focus();
+          } else {
+            updateFormApuCalc();
+          }
+        });
+
+        // Reset form
+        document.getElementById('resetFormBtn').addEventListener('click', () => {
+          document.getElementById('apuForm').reset();
+          document.getElementById('fApuOffArr').disabled = false;
+          document.getElementById('fApuOnDep').disabled = false;
+          session.manualApuOverride = false;
+          document.getElementById('fApuOnTime').readOnly = true;
+          document.getElementById('toggleManualApuBtn').textContent = 'Override';
+          document.getElementById('formErrorBox').classList.add('hidden');
+          updateFormHeader();
+          updateFormApuCalc();
+        });
+
+        // Form Submission
+        document.getElementById('apuForm').addEventListener('submit', async (ev) => {
+          ev.preventDefault();
+          const errBox = document.getElementById('formErrorBox');
+          errBox.classList.add('hidden');
+
+          const isoDate = document.getElementById('fDate').value;
+          const station = document.getElementById('fStation').value.trim().toUpperCase();
+          const arrFlight = document.getElementById('fArrFlight').value.trim().toUpperCase();
+          const depFlight = document.getElementById('fDepFlight').value.trim().toUpperCase();
+          const acReg = document.getElementById('fAcReg').value.trim().toUpperCase();
+          const fleet = document.getElementById('fFleet').value;
+          const bayNo = document.getElementById('fBayNo').value.trim().toUpperCase();
+          const bayType = document.getElementById('fBayType').value;
+          const onBlocks = document.getElementById('fOnBlocks').value;
+          const apuOffArr = document.getElementById('fRanThroughout').checked ? '' : document.getElementById('fApuOffArr').value;
+          const apuOnDep = document.getElementById('fRanThroughout').checked ? '' : document.getElementById('fApuOnDep').value;
+          const offBlocks = document.getElementById('fOffBlocks').value;
+          let apuOnTime = document.getElementById('fApuOnTime').value.trim();
+          const primaryReason = document.getElementById('fPrimaryReason').value;
+          const secondaryReason = document.getElementById('fSecondaryReason').value;
+          let remarks = document.getElementById('fRemarks').value.trim();
+
+          const missing = [];
+          if (!isoDate) missing.push('Date');
+          if (!station) missing.push('Station');
+          if (!arrFlight) missing.push('Arr Flight No.');
+          if (!depFlight) missing.push('Dep Flight No.');
+          if (!acReg) missing.push('AC Reg.');
+          if (!bayNo) missing.push('Stand / Bay No.');
+          if (!onBlocks) missing.push('On-Blocks');
+          if (!offBlocks) missing.push('Off-Blocks');
+
+          if (missing.length) {
+            errBox.textContent = `Please fill required fields: ${missing.join(', ')}.`;
+            errBox.classList.remove('hidden');
+            return;
+          }
+
+          if (!apuOnTime) {
+            apuOnTime = calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks).text || '00:00';
+          }
+
+          if (state.operatorTag && !remarks.includes(state.operatorTag)) {
+            remarks = remarks ? `${remarks} [By: ${state.operatorTag}]` : `[By: ${state.operatorTag}]`;
+          }
+
+          const newEntry = {
+            id: `entry-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            entryNo: state.nextEntryNo++,
+            date: formatDateToDDMMMYY(isoDate),
+            station,
+            arrFlight,
+            depFlight,
+            acReg,
+            fleet,
+            bayNo,
+            bayType,
+            onBlocks,
+            apuOnTime,
+            apuOffArr,
+            apuOnDep,
+            offBlocks,
+            primaryReason,
+            secondaryReason,
+            remarks,
+            synced: !state.webhookUrl
+          };
+
+          state.entries.push(newEntry);
+          if (!state.stations.includes(station)) state.stations.push(station);
+          saveState();
+          populateSelectOptions();
+          renderRecentEntries();
+          renderSheetTable();
+          updateSyncIndicator();
+
+          // Reset form cleanly for next aircraft
+          document.getElementById('apuForm').reset();
+          document.getElementById('fStation').value = station; // keep current station for fast ramp entry!
+          document.getElementById('fApuOffArr').disabled = false;
+          document.getElementById('fApuOnDep').disabled = false;
+          session.manualApuOverride = false;
+          document.getElementById('fApuOnTime').readOnly = true;
+          document.getElementById('toggleManualApuBtn').textContent = 'Override';
+          updateFormHeader();
+          updateFormApuCalc();
+
+          showToast(`Entry #${newEntry.entryNo} (${acReg}) added to Live Sheet!`);
+
+          if (state.webhookUrl) {
+            const ok = await pushEntryToWebhook(newEntry);
+            if (ok) showToast(`Entry #${newEntry.entryNo} synced to Cloud Excel!`);
+          }
+        });
+
+        // Sheet Filters & Pagination
+        ['sheetSearch', 'filterStation', 'filterFleet', 'filterBayType'].forEach(id => {
+          document.getElementById(id).addEventListener('input', () => {
+            session.page = 1;
+            renderSheetTable();
+          });
+        });
+
+        document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
+          session.pageSize = parseInt(e.target.value, 10) || 25;
+          session.page = 1;
+          renderSheetTable();
+        });
+        document.getElementById('prevPageBtn').addEventListener('click', () => {
+          if (session.page > 1) { session.page--; renderSheetTable(); }
+        });
+        document.getElementById('nextPageBtn').addEventListener('click', () => {
+          session.page++;
+          renderSheetTable();
+        });
+
+        // Table Edit / Delete Delegation (Admin)
+        document.getElementById('sheetTableBody').addEventListener('click', (e) => {
+          const editBtn = e.target.closest('[data-edit-id]');
+          const delBtn = e.target.closest('[data-del-id]');
+          if (editBtn && session.isAdmin) {
+            openEditModal(editBtn.dataset.editId);
+          } else if (delBtn && session.isAdmin) {
+            const target = state.entries.find(x => x.id === delBtn.dataset.delId);
+            if (!target) return;
+            showConfirm('Delete Entry', `Permanently delete Entry #${target.entryNo} (${target.acReg}) from the Live Sheet?`, async () => {
+              state.entries = state.entries.filter(x => x.id !== target.id);
+              saveState();
+              renderSheetTable();
+              renderRecentEntries();
+              showToast(`Entry #${target.entryNo} deleted.`);
+              await pushAdminAction(target, 'delete');
+            });
+          }
+        });
+
+        // Refresh Live & Export Buttons
+        document.getElementById('refreshLiveBtn').addEventListener('click', () => pullLiveSheet(false));
+        document.getElementById('exportXlsxBtn').addEventListener('click', exportToExcel);
+        document.getElementById('exportCsvBtn').addEventListener('click', exportToCsv);
+
+        // Role / Admin Login Modal
+        document.getElementById('roleBtn').addEventListener('click', () => {
+          if (session.isAdmin) {
+            session.isAdmin = false;
+            session.adminEmail = '';
+            session.adminPin = '';
+            updateRoleUI();
+            showToast('Signed out of Admin mode.');
+          } else {
+            openLoginModal();
+          }
+        });
+
+        document.getElementById('syncStatusBtn').addEventListener('click', () => {
+          if (session.isAdmin) switchTab('admin');
+          else showToast('All entries auto-save locally. Export .xlsx from Live Sheet anytime.');
+        });
+
+        document.getElementById('closeLoginModalBtn').addEventListener('click', closeLoginModal);
+        document.getElementById('adminLoginForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+          const pin = document.getElementById('loginPin').value.trim();
+          const match = state.admins.find(a => a.email.toLowerCase() === email && a.pin === pin);
+          if (!match) {
+            const err = document.getElementById('loginError');
+            err.textContent = 'Invalid Admin email or PIN. Try admin@ops.aero / 2026.';
+            err.classList.remove('hidden');
+            return;
+          }
+          session.isAdmin = true;
+          session.adminEmail = match.email;
+          session.adminPin = match.pin;
+          closeLoginModal();
+          updateRoleUI();
+          showToast(`Admin access unlocked (${match.email})`);
+        });
+
+        // Edit Entry Form Save
+        document.getElementById('closeEditModalBtn').addEventListener('click', closeEditModal);
+        document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+        ['eOnBlocks', 'eOffBlocks', 'eApuOffArr', 'eApuOnDep'].forEach(id => {
+          document.getElementById(id).addEventListener('input', () => {
+            const res = calculateApuDuration(
+              document.getElementById('eOnBlocks').value,
+              document.getElementById('eApuOffArr').value,
+              document.getElementById('eApuOnDep').value,
+              document.getElementById('eOffBlocks').value
+            );
+            if (res.text) document.getElementById('eApuOnTime').value = res.text;
+          });
+        });
+
+        document.getElementById('editEntryForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const id = document.getElementById('eId').value;
+          const entry = state.entries.find(x => x.id === id);
+          if (!entry) return;
+          entry.date = document.getElementById('eDate').value.trim();
+          entry.station = document.getElementById('eStation').value.trim().toUpperCase();
+          entry.arrFlight = document.getElementById('eArrFlight').value.trim().toUpperCase();
+          entry.depFlight = document.getElementById('eDepFlight').value.trim().toUpperCase();
+          entry.acReg = document.getElementById('eAcReg').value.trim().toUpperCase();
+          entry.fleet = document.getElementById('eFleet').value.trim();
+          entry.bayNo = document.getElementById('eBayNo').value.trim().toUpperCase();
+          entry.bayType = document.getElementById('eBayType').value;
+          entry.onBlocks = document.getElementById('eOnBlocks').value;
+          entry.offBlocks = document.getElementById('eOffBlocks').value;
+          entry.apuOffArr = document.getElementById('eApuOffArr').value;
+          entry.apuOnDep = document.getElementById('eApuOnDep').value;
+          entry.apuOnTime = document.getElementById('eApuOnTime').value.trim();
+          entry.primaryReason = document.getElementById('ePrimaryReason').value;
+          entry.secondaryReason = document.getElementById('eSecondaryReason').value;
+          entry.remarks = document.getElementById('eRemarks').value.trim();
+          saveState();
+          closeEditModal();
+          renderSheetTable();
+          renderRecentEntries();
+          showToast(`Entry #${entry.entryNo} updated.`);
+          await pushAdminAction(entry, 'update');
+        });
+
+        // Confirm Modal Buttons
+        document.getElementById('confirmCancelBtn').addEventListener('click', closeConfirm);
+        document.getElementById('confirmOkBtn').addEventListener('click', () => {
+          if (typeof pendingConfirmCallback === 'function') pendingConfirmCallback();
+          closeConfirm();
+        });
+
+        // Admin Panel Actions
+        document.getElementById('saveWebhookBtn').addEventListener('click', () => {
+          const url = document.getElementById('webhookUrlInput').value.trim();
+          if (url && !url.startsWith('https://')) {
+            showToast('Webhook URL must start with https://', 'error');
+            return;
+          }
+          state.webhookUrl = url;
+          saveState();
+          updateSyncIndicator();
+          showToast(url ? 'Live Cloud Sync URL saved!' : 'Cloud Sync URL cleared.');
+        });
+
+        document.getElementById('syncPendingBtn').addEventListener('click', async () => {
+          if (!state.webhookUrl) {
+            showToast('Enter an HTTPS Webhook URL first.', 'warning');
+            return;
+          }
+          const pending = state.entries.filter(e => !e.synced);
+          if (!pending.length) {
+            showToast('All entries are already synced.');
+            return;
+          }
+          let okCount = 0;
+          for (const item of pending) {
+            if (await pushEntryToWebhook(item)) okCount++;
+          }
+          showToast(`Synced ${okCount} of ${pending.length} pending rows.`, okCount === pending.length ? 'success' : 'warning');
+        });
+
+        document.getElementById('copyScriptBtn').addEventListener('click', copyAppsScriptCode);
+
+        document.getElementById('addAdminForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const email = document.getElementById('newAdminEmail').value.trim().toLowerCase();
+          const pin = document.getElementById('newAdminPin').value.trim();
+          if (!email || pin.length < 4) return;
+          if (state.admins.some(a => a.email.toLowerCase() === email)) {
+            showToast('Admin email already exists.', 'warning');
+            return;
+          }
+          state.admins.push({ email, pin, name: 'Authorized Admin' });
+          saveState();
+          document.getElementById('addAdminForm').reset();
+          renderAdminPanel();
+          showToast(`Added admin: ${email}`);
+        });
+
+        document.getElementById('adminListContainer').addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-remove-admin]');
+          if (!btn) return;
+          const idx = parseInt(btn.dataset.removeAdmin, 10);
+          if (state.admins.length <= 1) return;
+          const removed = state.admins.splice(idx, 1)[0];
+          saveState();
+          renderAdminPanel();
+          showToast(`Removed admin: ${removed.email}`);
+        });
+
+        document.getElementById('addStationBtn').addEventListener('click', () => {
+          const val = document.getElementById('addStationInput').value.trim().toUpperCase();
+          if (!val) return;
+          if (!state.stations.includes(val)) {
+            state.stations.push(val);
+            saveState();
+            populateSelectOptions();
+            showToast(`Station ${val} added.`);
+          }
+          document.getElementById('addStationInput').value = '';
+        });
+
+        document.getElementById('stationChips').addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-del-station]');
+          if (!btn) return;
+          state.stations = state.stations.filter(s => s !== btn.dataset.delStation);
+          saveState();
+          populateSelectOptions();
+        });
+
+        document.getElementById('addReasonBtn').addEventListener('click', () => {
+          const val = document.getElementById('addReasonInput').value.trim();
+          if (!val) return;
+          if (!state.reasons.includes(val)) {
+            state.reasons.push(val);
+            saveState();
+            populateSelectOptions();
+            showToast(`Added APU reason: ${val}`);
+          }
+          document.getElementById('addReasonInput').value = '';
+        });
+
+        // Import Excel / CSV
+        document.getElementById('importFileInput').addEventListener('change', (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          if (typeof window.XLSX === 'undefined') {
+            showToast('Excel parser library unavailable offline.', 'error');
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            try {
+              const wb = window.XLSX.read(evt.target.result, { type: 'array' });
+              const firstSheet = wb.Sheets[wb.SheetNames[0]];
+              const rows = window.XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+              let imported = 0;
+              for (let i = 1; i < rows.length; i++) {
+                const r = rows[i];
+                if (!r || r.length < 6 || !r[2]) continue;
+                state.entries.push({
+                  id: `imp-${Date.now()}-${i}`,
+                  entryNo: state.nextEntryNo++,
+                  date: String(r[1] || formatDateToDDMMMYY(getTodayISO())),
+                  station: String(r[2] || '').toUpperCase(),
+                  arrFlight: String(r[3] || '').toUpperCase(),
+                  depFlight: String(r[4] || '').toUpperCase(),
+                  acReg: String(r[5] || '').toUpperCase(),
+                  fleet: String(r[6] || 'A320'),
+                  bayNo: String(r[7] || ''),
+                  bayType: String(r[8] || 'Contact'),
+                  onBlocks: String(r[9] || ''),
+                  apuOnTime: String(r[10] || '00:00'),
+                  apuOffArr: String(r[11] || ''),
+                  apuOnDep: String(r[12] || ''),
+                  offBlocks: String(r[13] || ''),
+                  primaryReason: String(r[14] || 'Other'),
+                  secondaryReason: String(r[15] || 'None'),
+                  remarks: String(r[16] || ''),
+                  synced: true
+                });
+                imported++;
+              }
+              saveState();
+              populateSelectOptions();
+              updateFormHeader();
+              renderSheetTable();
+              renderRecentEntries();
+              showToast(`Imported ${imported} entries into Live Sheet!`);
+            } catch (err) {
+              showToast('Could not parse file. Use standard 17-column Excel/CSV.', 'error');
+            }
+            e.target.value = '';
+          };
+          reader.readAsArrayBuffer(file);
+        });
+
+        // Clear all entries
+        document.getElementById('clearAllDataBtn').addEventListener('click', () => {
+          showConfirm('Clear All Entries', 'Remove all entries from the Live Sheet and reset Entry No. to 1? Export a backup first if needed.', () => {
+            state.entries = [];
+            state.nextEntryNo = 1;
+            saveState();
+            updateFormHeader();
+            renderSheetTable();
+            renderRecentEntries();
+            updateSyncIndicator();
+            showToast('All entries cleared. Ready for fresh log.');
+          });
+        });
+      }
+
+      // Initialize App
+      function init() {
+        loadState();
+        populateSelectOptions();
+        updateFormHeader();
+        updateFormApuCalc();
+        renderRecentEntries();
+        renderSheetTable();
+        updateRoleUI();
+        updateSyncIndicator();
+        bindEvents();
+        if (window.lucide) window.lucide.createIcons();
+        if (state.webhookUrl) pullLiveSheet(true);
+      }
+
+      document.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function () {});
+      });
+    }
+  </script>
+</body>
+</html>
