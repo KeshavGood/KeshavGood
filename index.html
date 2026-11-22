@@ -314,9 +314,12 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
               <!-- On-Blocks -->
               <div>
-                <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center justify-between gap-1 mb-1">
                   <label class="text-xs font-semibold text-slate-700" for="fOnBlocks">On-Blocks (Time in IST) <span class="text-rose-500">*</span></label>
-                  <button type="button" data-now="fOnBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" data-utc-to-ist="fOnBlocks" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
+                    <button type="button" data-now="fOnBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                  </div>
                 </div>
                 <input id="fOnBlocks" type="time" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                 <span id="prev_fOnBlocks" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
@@ -324,9 +327,12 @@
 
               <!-- ARRIVAL APU ON TIME (Time in IST) -->
               <div>
-                <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center justify-between gap-1 mb-1">
                   <label class="text-xs font-semibold text-slate-700" for="fArrApuOn">ARRIVAL APU ON TIME (Time in IST)</label>
-                  <button type="button" data-now="fArrApuOn" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" data-utc-to-ist="fArrApuOn" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
+                    <button type="button" data-now="fArrApuOn" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                  </div>
                 </div>
                 <input id="fArrApuOn" type="time" class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                 <span id="prev_fArrApuOn" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
@@ -334,9 +340,12 @@
 
               <!-- APU OFF after arrival -->
               <div>
-                <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center justify-between gap-1 mb-1">
                   <label class="text-xs font-semibold text-slate-700" for="fApuOffArr">APU OFF after arr. (Time in IST)</label>
-                  <button type="button" data-now="fApuOffArr" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" data-utc-to-ist="fApuOffArr" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
+                    <button type="button" data-now="fApuOffArr" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                  </div>
                 </div>
                 <input id="fApuOffArr" type="time" class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400" />
                 <span id="prev_fApuOffArr" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
@@ -345,9 +354,12 @@
 
               <!-- APU ON for departure -->
               <div>
-                <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center justify-between gap-1 mb-1">
                   <label class="text-xs font-semibold text-slate-700" for="fApuOnDep">APU ON for dep. (Time in IST)</label>
-                  <button type="button" data-now="fApuOnDep" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" data-utc-to-ist="fApuOnDep" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
+                    <button type="button" data-now="fApuOnDep" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                  </div>
                 </div>
                 <input id="fApuOnDep" type="time" class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400" />
                 <span id="prev_fApuOnDep" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
@@ -355,9 +367,12 @@
 
               <!-- Off-Blocks -->
               <div>
-                <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center justify-between gap-1 mb-1">
                   <label class="text-xs font-semibold text-slate-700" for="fOffBlocks">Off-Blocks (Time in IST) <span class="text-rose-500">*</span></label>
-                  <button type="button" data-now="fOffBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" data-utc-to-ist="fOffBlocks" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
+                    <button type="button" data-now="fOffBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                  </div>
                 </div>
                 <input id="fOffBlocks" type="time" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                 <span id="prev_fOffBlocks" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
@@ -2039,6 +2054,7 @@
           convUtcInput.value = getNowUTCHHMM();
           updateConverterWidget();
           convUtcInput.addEventListener('input', updateConverterWidget);
+          convUtcInput.addEventListener('change', updateConverterWidget);
         }
         const convNowBtn = document.getElementById('convNowBtn');
         if (convNowBtn && convUtcInput) {
@@ -2058,7 +2074,14 @@
               convApplyField.value = '';
               return;
             }
-            if (session.tzMode === 'UTC') setTzMode('IST');
+            if (session.tzMode === 'UTC') {
+              ['fOnBlocks', 'fArrApuOn', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'].forEach(id => {
+                if (id === targetId) return;
+                const inp = document.getElementById(id);
+                if (inp && inp.value && !inp.disabled) inp.value = utcToIST(inp.value).ist;
+              });
+              setTzMode('IST');
+            }
             const target = document.getElementById(targetId);
             if (target) {
               if (target.disabled) {
@@ -2101,9 +2124,32 @@
           updateFormApuCalc();
         });
 
-        // Recalculate APU ON TIME on any time change
+        // Per-field one-tap UTC -> IST (+05:30) conversion buttons
+        document.querySelectorAll('.utc2ist-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const target = document.getElementById(btn.dataset.utcToIst);
+            if (!target || target.disabled) return;
+            if (!target.value) {
+              showToast('Enter a UTC time in this field first.', 'warning');
+              target.focus();
+              return;
+            }
+            const conv = utcToIST(target.value);
+            if (conv.ist) {
+              target.value = conv.ist;
+              updateFormApuCalc();
+              showToast(`Converted to ${conv.ist} IST${conv.dayShift ? ' (+1 day)' : ''}`);
+            }
+          });
+        });
+
+        // Recalculate APU ON TIME & UTC previews on both input and change (mobile picker support)
         ['fOnBlocks', 'fArrApuOn', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'].forEach(id => {
-          document.getElementById(id).addEventListener('input', updateFormApuCalc);
+          const el = document.getElementById(id);
+          if (el) {
+            el.addEventListener('input', updateFormApuCalc);
+            el.addEventListener('change', updateFormApuCalc);
+          }
         });
 
         // Manual override toggle
@@ -2328,7 +2374,7 @@
         document.getElementById('closeEditModalBtn').addEventListener('click', closeEditModal);
         document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
         ['eOnBlocks', 'eArrApuOn', 'eOffBlocks', 'eApuOffArr', 'eApuOnDep'].forEach(id => {
-          document.getElementById(id).addEventListener('input', () => {
+          const onEditTime = () => {
             const res = calculateApuDuration(
               document.getElementById('eOnBlocks').value,
               document.getElementById('eApuOffArr').value,
@@ -2337,7 +2383,10 @@
               document.getElementById('eArrApuOn').value
             );
             if (res.text) document.getElementById('eApuOnTime').value = res.text;
-          });
+          };
+          const editEl = document.getElementById(id);
+          editEl.addEventListener('input', onEditTime);
+          editEl.addEventListener('change', onEditTime);
         });
 
         document.getElementById('editEntryForm').addEventListener('submit', async (e) => {
