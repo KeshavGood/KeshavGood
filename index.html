@@ -1495,6 +1495,7 @@
             const remoteEntries = data.rows.map((r, idx) => {
               const eNo = Number(r['Entry No.']) || (idx + 1);
               const prevLocal = localByEntryNo[eNo];
+              if (prevLocal && prevLocal.localEdited) return prevLocal;
               const remoteArrApu = normalizeToIST(r['ARRIVAL APU ON TIME (Time in IST)'] || r['ARRIVAL APU ON TIME (IST)'] || '');
               return {
                 id: `cloud-${r['Entry No.'] || idx + 1}`,
@@ -1925,27 +1926,55 @@
         document.getElementById('adminLoginModal').classList.add('hidden');
       }
 
+      // Strictly normalize any time value into HH:MM for <input type="time">
+      function toTimeInputVal(val) {
+        const norm = normalizeToIST(val);
+        if (!norm) return '';
+        const m = norm.match(/^(\d{1,2}):(\d{2})/);
+        if (!m) return '';
+        const h = parseInt(m[1], 10);
+        const min = parseInt(m[2], 10);
+        if (isNaN(h) || isNaN(min) || h < 0 || h > 23 || min < 0 || min > 59) return '';
+        return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+      }
+
+      // Safely set a <select> value, adding the option if it isn't already in the list
+      function setSelectValueSafe(selectId, val, fallback = '') {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        const targetVal = (val != null && String(val).trim() !== '') ? String(val).trim() : fallback;
+        const hasOpt = Array.from(sel.options).some(o => o.value === targetVal);
+        if (!hasOpt && targetVal !== '') {
+          const opt = document.createElement('option');
+          opt.value = targetVal;
+          opt.textContent = targetVal;
+          sel.appendChild(opt);
+        }
+        sel.value = targetVal;
+      }
+
       function openEditModal(entryId) {
         const entry = state.entries.find(e => e.id === entryId);
         if (!entry) return;
+        populateSelectOptions();
         document.getElementById('editModalTitle').textContent = `Edit Entry #${entry.entryNo}`;
         document.getElementById('eId').value = entry.id;
-        document.getElementById('eDate').value = entry.date;
-        document.getElementById('eStation').value = entry.station;
-        document.getElementById('eArrFlight').value = entry.arrFlight;
-        document.getElementById('eDepFlight').value = entry.depFlight;
-        document.getElementById('eAcReg').value = entry.acReg;
-        document.getElementById('eFleet').value = entry.fleet;
-        document.getElementById('eBayNo').value = entry.bayNo;
-        document.getElementById('eBayType').value = entry.bayType;
-        document.getElementById('eOnBlocks').value = entry.onBlocks;
-        document.getElementById('eArrApuOn').value = entry.arrApuOn || '';
-        document.getElementById('eOffBlocks').value = entry.offBlocks;
-        document.getElementById('eApuOffArr').value = entry.apuOffArr || '';
-        document.getElementById('eApuOnDep').value = entry.apuOnDep || '';
-        document.getElementById('eApuOnTime').value = entry.apuOnTime;
-        document.getElementById('ePrimaryReason').value = entry.primaryReason;
-        document.getElementById('eSecondaryReason').value = entry.secondaryReason || 'None';
+        document.getElementById('eDate').value = entry.date || '';
+        document.getElementById('eStation').value = entry.station || '';
+        document.getElementById('eArrFlight').value = entry.arrFlight || '';
+        document.getElementById('eDepFlight').value = entry.depFlight || '';
+        document.getElementById('eAcReg').value = entry.acReg || '';
+        document.getElementById('eFleet').value = entry.fleet || '';
+        document.getElementById('eBayNo').value = entry.bayNo || '';
+        setSelectValueSafe('eBayType', entry.bayType, 'Contact');
+        document.getElementById('eOnBlocks').value = toTimeInputVal(entry.onBlocks);
+        document.getElementById('eArrApuOn').value = toTimeInputVal(entry.arrApuOn);
+        document.getElementById('eOffBlocks').value = toTimeInputVal(entry.offBlocks);
+        document.getElementById('eApuOffArr').value = toTimeInputVal(entry.apuOffArr);
+        document.getElementById('eApuOnDep').value = toTimeInputVal(entry.apuOnDep);
+        document.getElementById('eApuOnTime').value = entry.apuOnTime || '00:00';
+        setSelectValueSafe('ePrimaryReason', entry.primaryReason, state.reasons[0] || 'Other');
+        setSelectValueSafe('eSecondaryReason', entry.secondaryReason || 'None', 'None');
         document.getElementById('eRemarks').value = entry.remarks || '';
         document.getElementById('editModal').classList.remove('hidden');
       }
@@ -2471,7 +2500,10 @@
           e.preventDefault();
           const id = document.getElementById('eId').value;
           const entry = state.entries.find(x => x.id === id);
-          if (!entry) return;
+          if (!entry) {
+            showToast('Could not locate entry to update.', 'error');
+            return;
+          }
           entry.date = document.getElementById('eDate').value.trim();
           entry.station = document.getElementById('eStation').value.trim().toUpperCase();
           entry.arrFlight = document.getElementById('eArrFlight').value.trim().toUpperCase();
@@ -2480,21 +2512,43 @@
           entry.fleet = document.getElementById('eFleet').value.trim();
           entry.bayNo = document.getElementById('eBayNo').value.trim().toUpperCase();
           entry.bayType = document.getElementById('eBayType').value;
-          entry.onBlocks = document.getElementById('eOnBlocks').value;
-          entry.arrApuOn = document.getElementById('eArrApuOn').value;
-          entry.offBlocks = document.getElementById('eOffBlocks').value;
-          entry.apuOffArr = document.getElementById('eApuOffArr').value;
-          entry.apuOnDep = document.getElementById('eApuOnDep').value;
-          entry.apuOnTime = document.getElementById('eApuOnTime').value.trim();
+          entry.onBlocks = toTimeInputVal(document.getElementById('eOnBlocks').value);
+          entry.arrApuOn = toTimeInputVal(document.getElementById('eArrApuOn').value);
+          entry.offBlocks = toTimeInputVal(document.getElementById('eOffBlocks').value);
+          entry.apuOffArr = toTimeInputVal(document.getElementById('eApuOffArr').value);
+          entry.apuOnDep = toTimeInputVal(document.getElementById('eApuOnDep').value);
+          let apuDur = document.getElementById('eApuOnTime').value.trim();
+          if (!apuDur || apuDur === '00:00') {
+            apuDur = calculateApuDuration(entry.onBlocks, entry.apuOffArr, entry.apuOnDep, entry.offBlocks, entry.arrApuOn).text || apuDur || '00:00';
+          }
+          entry.apuOnTime = apuDur;
           entry.primaryReason = document.getElementById('ePrimaryReason').value;
-          entry.secondaryReason = document.getElementById('eSecondaryReason').value;
+          entry.secondaryReason = document.getElementById('eSecondaryReason').value || 'None';
           entry.remarks = document.getElementById('eRemarks').value.trim();
+          entry.localEdited = true;
+
+          if (entry.station && !state.stations.includes(entry.station)) state.stations.push(entry.station);
           saveState();
+          populateSelectOptions();
           closeEditModal();
           renderSheetTable();
           renderRecentEntries();
-          showToast(`Entry #${entry.entryNo} updated.`);
-          await pushAdminAction(entry, 'update');
+          if (session.activeTab === 'analytics') renderAnalytics();
+
+          if (state.webhookUrl) {
+            const ok = await pushAdminAction(entry, 'update');
+            if (ok) {
+              delete entry.localEdited;
+              saveState();
+              showToast(`Entry #${entry.entryNo} saved & synced to Cloud Sheet!`);
+            } else {
+              showToast(`Entry #${entry.entryNo} saved locally (cloud sync failed).`, 'warning');
+            }
+          } else {
+            delete entry.localEdited;
+            saveState();
+            showToast(`Entry #${entry.entryNo} updated.`);
+          }
         });
 
         // Confirm Modal Buttons
