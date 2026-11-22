@@ -306,7 +306,7 @@
             <div id="utcModeNotice" class="hidden mb-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] text-amber-900 font-semibold flex flex-wrap items-center justify-between gap-2">
               <span class="flex items-center gap-1.5">
                 <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
-                UTC Input Mode Active: Enter UTC (Zulu) times below — all fields will automatically convert &amp; save in IST (+05:30).
+                UTC Input Mode Active: Enter UTC (Zulu) times in the boxes below — displayed in UTC here, automatically converted &amp; saved in IST (+05:30) in the backend.
               </span>
               <button type="button" id="convertFieldsNowBtn" class="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold">Convert Filled Times to IST Now</button>
             </div>
@@ -1046,34 +1046,15 @@
         return isUtcTagged ? utcToIST(hhmm).ist : hhmm;
       }
 
-      // Return the IST value of a form timing input (avoids double-converting already-converted fields)
+      // Return the IST value of a form timing input (backend conversion: keeps UTC in front-end box, converts to IST in backend)
       function getFormTimeInIST(inputId) {
         const inp = document.getElementById(inputId);
         const val = inp ? inp.value : '';
         if (!val) return '';
-        if (session.tzMode === 'UTC' && inp.dataset.convertedIst !== val) {
+        if (session.tzMode === 'UTC') {
           return utcToIST(val).ist;
         }
         return val;
-      }
-
-      // Auto-convert a Section 2 time input from UTC to IST immediately on change when in UTC mode
-      function autoConvertFieldIfUtc(inp) {
-        if (!inp || inp.disabled || !inp.value) return;
-        if (session.tzMode !== 'UTC') return;
-        if (inp.dataset.convertedIst === inp.value) return; // Already converted
-        const rawUtc = inp.value;
-        const conv = utcToIST(rawUtc);
-        if (conv.ist) {
-          inp.value = conv.ist;
-          inp.dataset.convertedIst = conv.ist;
-          inp.dataset.sourceUtc = rawUtc;
-          const prevEl = document.getElementById(`prev_${inp.id}`);
-          if (prevEl) {
-            prevEl.textContent = `Converted ${rawUtc} UTC → ${conv.ist} IST${conv.dayShift ? ' (+1d)' : ''}`;
-            prevEl.classList.remove('hidden');
-          }
-        }
       }
 
       function updateUtcPreviews() {
@@ -1083,17 +1064,12 @@
           const inp = document.getElementById(id);
           if (!prevEl || !inp) return;
           if (!inp.value || inp.disabled) {
-            delete inp.dataset.convertedIst;
-            delete inp.dataset.sourceUtc;
             prevEl.classList.add('hidden');
             return;
           }
-          if (session.tzMode === 'UTC' && inp.dataset.convertedIst === inp.value && inp.dataset.sourceUtc) {
-            prevEl.textContent = `UTC: ${inp.dataset.sourceUtc} Z → IST: ${inp.value}`;
-            prevEl.classList.remove('hidden');
-          } else if (session.tzMode === 'UTC') {
+          if (session.tzMode === 'UTC') {
             const conv = utcToIST(inp.value);
-            prevEl.textContent = `→ IST: ${conv.ist}${conv.dayShift ? ' (+1d)' : ''}`;
+            prevEl.textContent = `Backend IST: ${conv.ist}${conv.dayShift ? ' (+1d)' : ''}`;
             prevEl.classList.remove('hidden');
           } else {
             prevEl.classList.add('hidden');
@@ -2190,24 +2166,13 @@
         }
 
         // Quick "Now" buttons:
-        // - In IST mode: fills current IST time cleanly
-        // - In UTC -> Auto IST mode: shows UTC time in the banner below while auto-converting into IST inside the block
+        // - In IST mode: fills current IST time
+        // - In UTC mode: fills current UTC time in the front-end box (backend converts to IST automatically)
         document.querySelectorAll('.now-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             const target = document.getElementById(btn.dataset.now);
             if (target && !target.disabled) {
-              if (session.tzMode === 'UTC') {
-                const nowUtc = getNowUTCHHMM();
-                const conv = utcToIST(nowUtc);
-                target.value = conv.ist;
-                target.dataset.convertedIst = conv.ist;
-                target.dataset.sourceUtc = nowUtc;
-              } else {
-                const nowIst = getNowISTHHMM();
-                target.value = nowIst;
-                target.dataset.convertedIst = nowIst;
-                delete target.dataset.sourceUtc;
-              }
+              target.value = session.tzMode === 'UTC' ? getNowUTCHHMM() : getNowISTHHMM();
               updateFormApuCalc();
             }
           });
@@ -2251,25 +2216,12 @@
           });
         });
 
-        // Auto-convert UTC -> IST on change/blur in UTC mode & live-update APU ON TIME
+        // Keep user's UTC value in front-end while converting to IST in backend & live-updating APU ON TIME
         ['fOnBlocks', 'fArrApuOn', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'].forEach(id => {
           const el = document.getElementById(id);
           if (el) {
-            el.addEventListener('input', () => {
-              if (el.dataset.convertedIst !== el.value) {
-                delete el.dataset.convertedIst;
-                delete el.dataset.sourceUtc;
-              }
-              updateFormApuCalc();
-            });
-            el.addEventListener('change', () => {
-              autoConvertFieldIfUtc(el);
-              updateFormApuCalc();
-            });
-            el.addEventListener('blur', () => {
-              autoConvertFieldIfUtc(el);
-              updateFormApuCalc();
-            });
+            el.addEventListener('input', updateFormApuCalc);
+            el.addEventListener('change', updateFormApuCalc);
           }
         });
 
