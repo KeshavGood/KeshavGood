@@ -171,6 +171,7 @@
             <select id="convApplyField" class="bg-slate-800 text-slate-100 border border-slate-600 rounded-xl px-2 py-1.5 text-[11px] font-semibold focus:outline-none focus:ring-2 focus:ring-sky-400">
               <option value="">Apply IST to...</option>
               <option value="fOnBlocks">On-Blocks (IST)</option>
+              <option value="fArrApuOn">ARRIVAL APU ON TIME (IST)</option>
               <option value="fApuOffArr">APU OFF after arr. (IST)</option>
               <option value="fApuOnDep">APU ON for dep. (IST)</option>
               <option value="fOffBlocks">Off-Blocks (IST)</option>
@@ -321,6 +322,16 @@
                 <span id="prev_fOnBlocks" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
               </div>
 
+              <!-- ARRIVAL APU ON TIME (Time in IST) -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-xs font-semibold text-slate-700" for="fArrApuOn">ARRIVAL APU ON TIME (IST)</label>
+                  <button type="button" data-now="fArrApuOn" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
+                </div>
+                <input id="fArrApuOn" type="time" class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <span id="prev_fArrApuOn" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
+              </div>
+
               <!-- APU OFF after arrival -->
               <div>
                 <div class="flex items-center justify-between mb-1">
@@ -351,15 +362,20 @@
                 <input id="fOffBlocks" type="time" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                 <span id="prev_fOffBlocks" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
               </div>
+            </div>
 
-              <!-- APU ON TIME (Auto Calculated + Manual Override) -->
-              <div class="bg-sky-50/80 border border-sky-200 rounded-xl p-2.5 flex flex-col justify-between">
-                <div class="flex items-center justify-between gap-1 mb-1">
-                  <label class="text-xs font-bold text-sky-900" for="fApuOnTime">APU ON TIME (Duration)</label>
-                  <button type="button" id="toggleManualApuBtn" class="text-[10px] font-semibold text-sky-700 underline">Override</button>
+            <!-- Permanent Calculated APU ON TIME Display Bar -->
+            <div class="mt-3.5 bg-sky-50/90 border border-sky-200 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2">
+                <i data-lucide="timer" class="w-4 h-4 text-sky-600 shrink-0"></i>
+                <div>
+                  <label class="text-xs font-bold text-sky-900 block leading-tight" for="fApuOnTime">APU ON TIME (Total Duration)</label>
+                  <span id="apuCalcHint" class="block text-[11px] text-sky-700 font-medium">Auto-calculated (hh:mm)</span>
                 </div>
-                <input id="fApuOnTime" type="text" placeholder="00:00" readonly class="w-full rounded-lg border border-sky-200 bg-white px-2.5 py-1.5 text-base font-extrabold text-sky-700 text-center focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                <span id="apuCalcHint" class="block text-[10px] text-sky-700 text-center mt-1 font-medium">Auto-calculated (hh:mm)</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <input id="fApuOnTime" type="text" placeholder="00:00" readonly class="w-28 rounded-lg border border-sky-300 bg-white px-3 py-1.5 text-base font-extrabold text-sky-700 text-center focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <button type="button" id="toggleManualApuBtn" class="px-2.5 py-1.5 rounded-lg bg-white border border-sky-200 hover:bg-sky-100 text-[11px] font-semibold text-sky-700">Override</button>
               </div>
             </div>
           </div>
@@ -437,7 +453,7 @@
               <h2 class="text-lg font-bold text-slate-900">Live APU Excel Sheet <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full ml-1">Time in IST</span></h2>
               <span id="sheetTotalBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">0 Entries</span>
             </div>
-            <p class="text-xs text-slate-500 mt-0.5">Supports unlimited rows across all 17 standard columns. Export to real .xlsx anytime.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Supports unlimited rows across all 18 columns with permanent APU ON TIME summary. Export to real .xlsx anytime.</p>
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
@@ -491,13 +507,14 @@
                 <th class="px-3 py-3 border-r border-slate-700">Stand / Bay No.</th>
                 <th class="px-3 py-3 border-r border-slate-700">Bay Type</th>
                 <th class="px-3 py-3 border-r border-slate-700">On-Blocks (Time in IST)</th>
-                <th class="px-3 py-3 border-r border-slate-700 bg-sky-900">APU ON TIME</th>
+                <th class="px-3 py-3 border-r border-slate-700">ARRIVAL APU ON TIME (Time in IST)</th>
                 <th class="px-3 py-3 border-r border-slate-700">APU OFF after arrival (Time in IST)</th>
                 <th class="px-3 py-3 border-r border-slate-700">APU ON for departure (Time in IST)</th>
                 <th class="px-3 py-3 border-r border-slate-700">Off-Blocks (Time in IST)</th>
                 <th class="px-3 py-3 border-r border-slate-700">Primary Reason For Using APU</th>
                 <th class="px-3 py-3 border-r border-slate-700">Secondary Reason for using APU</th>
                 <th class="px-3 py-3 border-r border-slate-700">Remarks ( if any delay)</th>
+                <th class="px-3 py-3 border-r border-slate-700 bg-sky-900 text-sky-100">APU ON TIME</th>
                 <th class="px-3 py-3 text-center admin-col hidden">Admin Actions</th>
               </tr>
             </thead>
@@ -755,9 +772,10 @@
           </select>
         </div>
         <div><label class="font-semibold block mb-1">On-Blocks (Time in IST)</label><input id="eOnBlocks" type="time" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
-        <div><label class="font-semibold block mb-1">Off-Blocks (Time in IST)</label><input id="eOffBlocks" type="time" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">ARRIVAL APU ON TIME (Time in IST)</label><input id="eArrApuOn" type="time" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
         <div><label class="font-semibold block mb-1">APU OFF after arrival (Time in IST)</label><input id="eApuOffArr" type="time" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
         <div><label class="font-semibold block mb-1">APU ON for departure (Time in IST)</label><input id="eApuOnDep" type="time" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">Off-Blocks (Time in IST)</label><input id="eOffBlocks" type="time" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
         <div><label class="font-semibold block mb-1">APU ON TIME (hh:mm)</label><input id="eApuOnTime" type="text" required class="w-full rounded-lg border border-sky-300 bg-sky-50 font-bold px-2.5 py-2" /></div>
         <div><label class="font-semibold block mb-1">Primary Reason</label><select id="ePrimaryReason" class="w-full rounded-lg border border-slate-300 px-2.5 py-2 bg-white"></select></div>
         <div><label class="font-semibold block mb-1">Secondary Reason</label><select id="eSecondaryReason" class="w-full rounded-lg border border-slate-300 px-2.5 py-2 bg-white"></select></div>
@@ -807,13 +825,14 @@
         'Stand / Bay No.',
         'Bay Type',
         'On-Blocks (Time in IST)',
-        'APU ON TIME',
+        'ARRIVAL APU ON TIME (Time in IST)',
         'APU OFF after arrival (Time in IST) - leave blank if APU ran throughout',
         'APU ON for departure (Time in IST)',
         'Off-Blocks (Time in IST)',
         'Primary Reason For Using APU',
         'Secondary Reason for using APU',
-        'Remarks ( if any delay)'
+        'Remarks ( if any delay)',
+        'APU ON TIME'
       ];
 
       const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1009,7 +1028,7 @@
       }
 
       function updateUtcPreviews() {
-        const ids = ['fOnBlocks', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'];
+        const ids = ['fOnBlocks', 'fArrApuOn', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'];
         ids.forEach(id => {
           const prevEl = document.getElementById(`prev_${id}`);
           const inp = document.getElementById(id);
@@ -1094,22 +1113,22 @@
         return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
       }
 
-      function calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks) {
-        const onM = timeToMinutes(onBlocks);
+      function calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks, arrApuOn = '') {
+        const startM = timeToMinutes(arrApuOn) !== null ? timeToMinutes(arrApuOn) : timeToMinutes(onBlocks);
         const offM = timeToMinutes(offBlocks);
-        if (onM === null || offM === null) return { text: '', mins: 0, mode: 'Enter On-Blocks & Off-Blocks' };
+        if (startM === null || offM === null) return { text: '', mins: 0, mode: 'Enter On-Blocks & Off-Blocks' };
 
         const apuOffM = timeToMinutes(apuOffArr);
         const apuOnM = timeToMinutes(apuOnDep);
 
         // If APU OFF after arrival is blank => APU ran throughout
         if (apuOffM === null) {
-          const total = diffMinutes(onM, offM);
+          const total = diffMinutes(startM, offM);
           return { text: minutesToHHMM(total), mins: total, mode: `Ran throughout (${total} min)` };
         }
 
-        // Otherwise segment 1: On-Blocks -> APU OFF after arrival
-        const seg1 = diffMinutes(onM, apuOffM);
+        // Otherwise segment 1: Arrival APU ON (or On-Blocks) -> APU OFF after arrival
+        const seg1 = diffMinutes(startM, apuOffM);
         // Segment 2 (optional if APU ON for departure is provided): APU ON for dep -> Off-Blocks
         const seg2 = apuOnM !== null ? diffMinutes(apuOnM, offM) : 0;
         const total = seg1 + seg2;
@@ -1203,10 +1222,11 @@
         updateUtcPreviews();
         if (session.manualApuOverride) return;
         const onBlocks = getFormTimeInIST('fOnBlocks');
+        const arrApuOn = getFormTimeInIST('fArrApuOn');
         const apuOffArr = getFormTimeInIST('fApuOffArr');
         const apuOnDep = getFormTimeInIST('fApuOnDep');
         const offBlocks = getFormTimeInIST('fOffBlocks');
-        const res = calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks);
+        const res = calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks, arrApuOn);
         document.getElementById('fApuOnTime').value = res.text;
         document.getElementById('apuCalcHint').textContent = res.mode;
       }
@@ -1328,6 +1348,7 @@
           'Bay Type': entry.bayType,
           'On-Blocks (LT hh:mm)': entry.onBlocks,
           'On-Blocks (Time in IST)': entry.onBlocks,
+          'ARRIVAL APU ON TIME (Time in IST)': entry.arrApuOn || '',
           'APU ON TIME': entry.apuOnTime,
           'APU OFF after arrival (hh:mm) - leave blank if APU ran throughout': entry.apuOffArr || '',
           'APU OFF after arrival (Time in IST) - leave blank if APU ran throughout': entry.apuOffArr || '',
@@ -1424,6 +1445,7 @@
               bayNo: String(r['Stand / Bay No.'] || '').toUpperCase(),
               bayType: String(r['Bay Type'] || 'Contact'),
               onBlocks: normalizeToIST(r['On-Blocks (Time in IST)'] || r['On-Blocks (LT hh:mm)'] || ''),
+              arrApuOn: normalizeToIST(r['ARRIVAL APU ON TIME (Time in IST)'] || ''),
               apuOnTime: String(r['APU ON TIME'] || '00:00'),
               apuOffArr: normalizeToIST(r['APU OFF after arrival (Time in IST) - leave blank if APU ran throughout'] || r['APU OFF after arrival (hh:mm) - leave blank if APU ran throughout'] || ''),
               apuOnDep: normalizeToIST(r['APU ON for departure (Time in IST)'] || r['APU ON for departure (hh:mm)'] || ''),
@@ -1511,7 +1533,7 @@
 
         const tbody = document.getElementById('sheetTableBody');
         if (!pageRows.length) {
-          tbody.innerHTML = `<tr><td colspan="${session.isAdmin ? 18 : 17}" class="px-4 py-8 text-center text-slate-400">No matching entries found.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="${session.isAdmin ? 19 : 18}" class="px-4 py-8 text-center text-slate-400">No matching entries found.</td></tr>`;
         } else {
           tbody.innerHTML = pageRows.map(e => `
             <tr class="hover:bg-sky-50/50 transition-colors">
@@ -1527,13 +1549,14 @@
                 <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${e.bayType === 'Remote' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${escapeHtml(e.bayType)}</span>
               </td>
               <td class="px-3 py-2.5 border-r border-slate-100 font-mono">${escapeHtml(e.onBlocks)}</td>
-              <td class="px-3 py-2.5 border-r border-slate-100 font-mono font-bold text-sky-700 bg-sky-50/40">${escapeHtml(e.apuOnTime)}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-mono text-slate-700">${escapeHtml(e.arrApuOn || '—')}</td>
               <td class="px-3 py-2.5 border-r border-slate-100 font-mono text-slate-600">${e.apuOffArr ? escapeHtml(e.apuOffArr) : '<span class="text-amber-600 italic text-[11px]">Ran throughout</span>'}</td>
               <td class="px-3 py-2.5 border-r border-slate-100 font-mono text-slate-600">${escapeHtml(e.apuOnDep || '—')}</td>
               <td class="px-3 py-2.5 border-r border-slate-100 font-mono">${escapeHtml(e.offBlocks)}</td>
               <td class="px-3 py-2.5 border-r border-slate-100 font-medium text-slate-800">${escapeHtml(e.primaryReason)}</td>
               <td class="px-3 py-2.5 border-r border-slate-100 text-slate-600">${escapeHtml(e.secondaryReason || 'None')}</td>
               <td class="px-3 py-2.5 border-r border-slate-100 text-slate-600 max-w-xs truncate" title="${escapeHtml(e.remarks)}">${escapeHtml(e.remarks || '—')}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-mono font-bold text-sky-700 bg-sky-50/50">${escapeHtml(e.apuOnTime)}</td>
               <td class="px-3 py-2.5 text-center admin-col ${session.isAdmin ? '' : 'hidden'}">
                 <div class="inline-flex items-center gap-1.5">
                   <button type="button" data-edit-id="${escapeHtml(e.id)}" class="px-2 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 font-semibold">Edit</button>
@@ -1557,8 +1580,8 @@
         const sorted = [...state.entries].sort((a, b) => a.entryNo - b.entryNo);
         const rows = sorted.map(e => [
           e.entryNo, e.date, e.station, e.arrFlight, e.depFlight, e.acReg, e.fleet,
-          e.bayNo, e.bayType, e.onBlocks, e.apuOnTime, e.apuOffArr || '',
-          e.apuOnDep || '', e.offBlocks, e.primaryReason, e.secondaryReason === 'None' ? '' : (e.secondaryReason || ''), e.remarks || ''
+          e.bayNo, e.bayType, e.onBlocks, e.arrApuOn || '', e.apuOffArr || '',
+          e.apuOnDep || '', e.offBlocks, e.primaryReason, e.secondaryReason === 'None' ? '' : (e.secondaryReason || ''), e.remarks || '', e.apuOnTime
         ]);
 
         const filename = `APU_Usage_Live_Log_${getTodayISO()}.xlsx`;
@@ -1568,8 +1591,8 @@
           const ws = window.XLSX.utils.aoa_to_sheet(aoa);
           ws['!cols'] = [
             { wch: 10 }, { wch: 16 }, { wch: 9 }, { wch: 14 }, { wch: 14 }, { wch: 11 },
-            { wch: 11 }, { wch: 14 }, { wch: 11 }, { wch: 18 }, { wch: 13 }, { wch: 28 },
-            { wch: 22 }, { wch: 18 }, { wch: 30 }, { wch: 28 }, { wch: 34 }
+            { wch: 11 }, { wch: 14 }, { wch: 11 }, { wch: 22 }, { wch: 26 }, { wch: 30 },
+            { wch: 26 }, { wch: 22 }, { wch: 30 }, { wch: 28 }, { wch: 34 }, { wch: 14 }
           ];
           const wb = window.XLSX.utils.book_new();
           window.XLSX.utils.book_append_sheet(wb, ws, 'APU Live Log');
@@ -1588,8 +1611,8 @@
         sorted.forEach(e => {
           lines.push([
             e.entryNo, e.date, e.station, e.arrFlight, e.depFlight, e.acReg, e.fleet,
-            e.bayNo, e.bayType, e.onBlocks, e.apuOnTime, e.apuOffArr || '',
-            e.apuOnDep || '', e.offBlocks, e.primaryReason, e.secondaryReason === 'None' ? '' : (e.secondaryReason || ''), e.remarks || ''
+            e.bayNo, e.bayType, e.onBlocks, e.arrApuOn || '', e.apuOffArr || '',
+            e.apuOnDep || '', e.offBlocks, e.primaryReason, e.secondaryReason === 'None' ? '' : (e.secondaryReason || ''), e.remarks || '', e.apuOnTime
           ].map(esc).join(','));
         });
         const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
@@ -1843,6 +1866,7 @@
         document.getElementById('eBayNo').value = entry.bayNo;
         document.getElementById('eBayType').value = entry.bayType;
         document.getElementById('eOnBlocks').value = entry.onBlocks;
+        document.getElementById('eArrApuOn').value = entry.arrApuOn || '';
         document.getElementById('eOffBlocks').value = entry.offBlocks;
         document.getElementById('eApuOffArr').value = entry.apuOffArr || '';
         document.getElementById('eApuOnDep').value = entry.apuOnDep || '';
@@ -1989,7 +2013,7 @@
         const convFieldsBtn = document.getElementById('convertFieldsNowBtn');
         if (convFieldsBtn) {
           convFieldsBtn.addEventListener('click', () => {
-            ['fOnBlocks', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'].forEach(id => {
+            ['fOnBlocks', 'fArrApuOn', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'].forEach(id => {
               const inp = document.getElementById(id);
               if (inp && inp.value && !inp.disabled) {
                 inp.value = utcToIST(inp.value).ist;
@@ -2069,7 +2093,7 @@
         });
 
         // Recalculate APU ON TIME on any time change
-        ['fOnBlocks', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'].forEach(id => {
+        ['fOnBlocks', 'fArrApuOn', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'].forEach(id => {
           document.getElementById(id).addEventListener('input', updateFormApuCalc);
         });
 
@@ -2116,6 +2140,7 @@
           const bayNo = document.getElementById('fBayNo').value.trim().toUpperCase();
           const bayType = document.getElementById('fBayType').value;
           const onBlocks = getFormTimeInIST('fOnBlocks');
+          const arrApuOn = getFormTimeInIST('fArrApuOn');
           const apuOffArr = document.getElementById('fRanThroughout').checked ? '' : getFormTimeInIST('fApuOffArr');
           const apuOnDep = document.getElementById('fRanThroughout').checked ? '' : getFormTimeInIST('fApuOnDep');
           const offBlocks = getFormTimeInIST('fOffBlocks');
@@ -2141,7 +2166,7 @@
           }
 
           if (!apuOnTime) {
-            apuOnTime = calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks).text || '00:00';
+            apuOnTime = calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks, arrApuOn).text || '00:00';
           }
 
           if (state.operatorTag && !remarks.includes(state.operatorTag)) {
@@ -2160,6 +2185,7 @@
             bayNo,
             bayType,
             onBlocks,
+            arrApuOn,
             apuOnTime,
             apuOffArr,
             apuOnDep,
@@ -2292,13 +2318,14 @@
         // Edit Entry Form Save
         document.getElementById('closeEditModalBtn').addEventListener('click', closeEditModal);
         document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
-        ['eOnBlocks', 'eOffBlocks', 'eApuOffArr', 'eApuOnDep'].forEach(id => {
+        ['eOnBlocks', 'eArrApuOn', 'eOffBlocks', 'eApuOffArr', 'eApuOnDep'].forEach(id => {
           document.getElementById(id).addEventListener('input', () => {
             const res = calculateApuDuration(
               document.getElementById('eOnBlocks').value,
               document.getElementById('eApuOffArr').value,
               document.getElementById('eApuOnDep').value,
-              document.getElementById('eOffBlocks').value
+              document.getElementById('eOffBlocks').value,
+              document.getElementById('eArrApuOn').value
             );
             if (res.text) document.getElementById('eApuOnTime').value = res.text;
           });
@@ -2318,6 +2345,7 @@
           entry.bayNo = document.getElementById('eBayNo').value.trim().toUpperCase();
           entry.bayType = document.getElementById('eBayType').value;
           entry.onBlocks = document.getElementById('eOnBlocks').value;
+          entry.arrApuOn = document.getElementById('eArrApuOn').value;
           entry.offBlocks = document.getElementById('eOffBlocks').value;
           entry.apuOffArr = document.getElementById('eApuOffArr').value;
           entry.apuOnDep = document.getElementById('eApuOnDep').value;
