@@ -317,7 +317,7 @@
                 <div class="flex items-center justify-between gap-1 mb-1">
                   <label class="text-xs font-semibold text-slate-700" for="fOnBlocks">On-Blocks (Time in IST) <span class="text-rose-500">*</span></label>
                   <div class="flex items-center gap-2 shrink-0">
-                    <button type="button" data-utc-to-ist="fOnBlocks" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
+                    <button type="button" data-utc-to-ist="fOnBlocks" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
                     <button type="button" data-now="fOnBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
                   </div>
                 </div>
@@ -330,7 +330,7 @@
                 <div class="flex items-center justify-between gap-1 mb-1">
                   <label class="text-xs font-semibold text-slate-700" for="fArrApuOn">ARRIVAL APU ON TIME (Time in IST)</label>
                   <div class="flex items-center gap-2 shrink-0">
-                    <button type="button" data-utc-to-ist="fArrApuOn" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
+                    <button type="button" data-utc-to-ist="fArrApuOn" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
                     <button type="button" data-now="fArrApuOn" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
                   </div>
                 </div>
@@ -343,7 +343,7 @@
                 <div class="flex items-center justify-between gap-1 mb-1">
                   <label class="text-xs font-semibold text-slate-700" for="fApuOffArr">APU OFF after arr. (Time in IST)</label>
                   <div class="flex items-center gap-2 shrink-0">
-                    <button type="button" data-utc-to-ist="fApuOffArr" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
+                    <button type="button" data-utc-to-ist="fApuOffArr" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
                     <button type="button" data-now="fApuOffArr" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
                   </div>
                 </div>
@@ -357,7 +357,7 @@
                 <div class="flex items-center justify-between gap-1 mb-1">
                   <label class="text-xs font-semibold text-slate-700" for="fApuOnDep">APU ON for dep. (Time in IST)</label>
                   <div class="flex items-center gap-2 shrink-0">
-                    <button type="button" data-utc-to-ist="fApuOnDep" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
+                    <button type="button" data-utc-to-ist="fApuOnDep" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
                     <button type="button" data-now="fApuOnDep" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
                   </div>
                 </div>
@@ -370,7 +370,7 @@
                 <div class="flex items-center justify-between gap-1 mb-1">
                   <label class="text-xs font-semibold text-slate-700" for="fOffBlocks">Off-Blocks (Time in IST) <span class="text-rose-500">*</span></label>
                   <div class="flex items-center gap-2 shrink-0">
-                    <button type="button" data-utc-to-ist="fOffBlocks" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
+                    <button type="button" data-utc-to-ist="fOffBlocks" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
                     <button type="button" data-now="fOffBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
                   </div>
                 </div>
@@ -1077,8 +1077,8 @@
             prevEl.classList.add('hidden');
             return;
           }
-          if (inp.dataset.convertedIst === inp.value && inp.dataset.sourceUtc) {
-            prevEl.textContent = `Converted ${inp.dataset.sourceUtc} UTC → ${inp.value} IST`;
+          if (session.tzMode === 'UTC' && inp.dataset.convertedIst === inp.value && inp.dataset.sourceUtc) {
+            prevEl.textContent = `UTC: ${inp.dataset.sourceUtc} Z → IST: ${inp.value}`;
             prevEl.classList.remove('hidden');
           } else if (session.tzMode === 'UTC') {
             const conv = utcToIST(inp.value);
@@ -1100,6 +1100,7 @@
           istBtn.className = `tz-mode-btn px-2.5 py-1 rounded-lg transition-colors ${!isUtc ? 'bg-sky-600 text-white' : 'text-slate-600 hover:text-slate-900'}`;
           utcBtn.className = `tz-mode-btn px-2.5 py-1 rounded-lg transition-colors ${isUtc ? 'bg-amber-600 text-white' : 'text-slate-600 hover:text-slate-900'}`;
           if (notice) notice.classList.toggle('hidden', !isUtc);
+          document.querySelectorAll('.utc2ist-btn').forEach(b => b.classList.toggle('hidden', !isUtc));
         }
         updateUtcPreviews();
         updateFormApuCalc();
@@ -2145,15 +2146,25 @@
           });
         }
 
-        // Quick "Now" buttons (always fills current IST time cleanly)
+        // Quick "Now" buttons:
+        // - In IST mode: fills current IST time cleanly
+        // - In UTC -> Auto IST mode: shows UTC time in the banner below while auto-converting into IST inside the block
         document.querySelectorAll('.now-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             const target = document.getElementById(btn.dataset.now);
             if (target && !target.disabled) {
-              const nowIst = getNowISTHHMM();
-              target.value = nowIst;
-              target.dataset.convertedIst = nowIst;
-              delete target.dataset.sourceUtc;
+              if (session.tzMode === 'UTC') {
+                const nowUtc = getNowUTCHHMM();
+                const conv = utcToIST(nowUtc);
+                target.value = conv.ist;
+                target.dataset.convertedIst = conv.ist;
+                target.dataset.sourceUtc = nowUtc;
+              } else {
+                const nowIst = getNowISTHHMM();
+                target.value = nowIst;
+                target.dataset.convertedIst = nowIst;
+                delete target.dataset.sourceUtc;
+              }
               updateFormApuCalc();
             }
           });
