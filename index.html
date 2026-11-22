@@ -1035,11 +1035,34 @@
         return isUtcTagged ? utcToIST(hhmm).ist : hhmm;
       }
 
-      // Return the IST value of a form timing input (auto-converts if in UTC mode)
+      // Return the IST value of a form timing input (avoids double-converting already-converted fields)
       function getFormTimeInIST(inputId) {
-        const val = (document.getElementById(inputId) || {}).value || '';
+        const inp = document.getElementById(inputId);
+        const val = inp ? inp.value : '';
         if (!val) return '';
-        return session.tzMode === 'UTC' ? utcToIST(val).ist : val;
+        if (session.tzMode === 'UTC' && inp.dataset.convertedIst !== val) {
+          return utcToIST(val).ist;
+        }
+        return val;
+      }
+
+      // Auto-convert a Section 2 time input from UTC to IST immediately on change when in UTC mode
+      function autoConvertFieldIfUtc(inp) {
+        if (!inp || inp.disabled || !inp.value) return;
+        if (session.tzMode !== 'UTC') return;
+        if (inp.dataset.convertedIst === inp.value) return; // Already converted
+        const rawUtc = inp.value;
+        const conv = utcToIST(rawUtc);
+        if (conv.ist) {
+          inp.value = conv.ist;
+          inp.dataset.convertedIst = conv.ist;
+          inp.dataset.sourceUtc = rawUtc;
+          const prevEl = document.getElementById(`prev_${inp.id}`);
+          if (prevEl) {
+            prevEl.textContent = `Converted ${rawUtc} UTC → ${conv.ist} IST${conv.dayShift ? ' (+1d)' : ''}`;
+            prevEl.classList.remove('hidden');
+          }
+        }
       }
 
       function updateUtcPreviews() {
@@ -1048,7 +1071,16 @@
           const prevEl = document.getElementById(`prev_${id}`);
           const inp = document.getElementById(id);
           if (!prevEl || !inp) return;
-          if (session.tzMode === 'UTC' && inp.value && !inp.disabled) {
+          if (!inp.value || inp.disabled) {
+            delete inp.dataset.convertedIst;
+            delete inp.dataset.sourceUtc;
+            prevEl.classList.add('hidden');
+            return;
+          }
+          if (inp.dataset.convertedIst === inp.value && inp.dataset.sourceUtc) {
+            prevEl.textContent = `Converted ${inp.dataset.sourceUtc} UTC → ${inp.value} IST`;
+            prevEl.classList.remove('hidden');
+          } else if (session.tzMode === 'UTC') {
             const conv = utcToIST(inp.value);
             prevEl.textContent = `→ IST: ${conv.ist}${conv.dayShift ? ' (+1d)' : ''}`;
             prevEl.classList.remove('hidden');
@@ -1131,27 +1163,34 @@
       function calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks, arrApuOn = '') {
         const startM = timeToMinutes(arrApuOn) !== null ? timeToMinutes(arrApuOn) : timeToMinutes(onBlocks);
         const offM = timeToMinutes(offBlocks);
-        if (startM === null || offM === null) return { text: '', mins: 0, mode: 'Enter On-Blocks & Off-Blocks' };
-
         const apuOffM = timeToMinutes(apuOffArr);
         const apuOnM = timeToMinutes(apuOnDep);
 
-        // If APU OFF after arrival is blank => APU ran throughout
-        if (apuOffM === null) {
+        // Case 1: Both arrival segment and departure segment available
+        if (startM !== null && apuOffM !== null) {
+          const seg1 = diffMinutes(startM, apuOffM);
+          const seg2 = (apuOnM !== null && offM !== null) ? diffMinutes(apuOnM, offM) : 0;
+          const total = seg1 + seg2;
+          return {
+            text: minutesToHHMM(total),
+            mins: total,
+            mode: (apuOnM !== null && offM !== null) ? `Arr ${seg1}m + Dep ${seg2}m = ${total}m` : `Arr segment (${seg1} min)`
+          };
+        }
+
+        // Case 2: APU ran throughout (no APU OFF after arrival) and both start & Off-Blocks exist
+        if (startM !== null && offM !== null && apuOffM === null) {
           const total = diffMinutes(startM, offM);
           return { text: minutesToHHMM(total), mins: total, mode: `Ran throughout (${total} min)` };
         }
 
-        // Otherwise segment 1: Arrival APU ON (or On-Blocks) -> APU OFF after arrival
-        const seg1 = diffMinutes(startM, apuOffM);
-        // Segment 2 (optional if APU ON for departure is provided): APU ON for dep -> Off-Blocks
-        const seg2 = apuOnM !== null ? diffMinutes(apuOnM, offM) : 0;
-        const total = seg1 + seg2;
-        return {
-          text: minutesToHHMM(total),
-          mins: total,
-          mode: apuOnM !== null ? `Arr ${seg1}m + Dep ${seg2}m = ${total}m` : `Arr segment (${total} min)`
-        };
+        // Case 3: Only departure segment entered so far
+        if (apuOnM !== null && offM !== null) {
+          const seg2 = diffMinutes(apuOnM, offM);
+          return { text: minutesToHHMM(seg2), mins: seg2, mode: `Dep segment (${seg2} min)` };
+        }
+
+        return { text: '', mins: 0, mode: 'Enter On-Blocks / Arrival APU ON & Off-Blocks' };
       }
 
       // Toast Notification
@@ -1469,7 +1508,16 @@
                 bayType: String(r['Bay Type'] || 'Contact'),
                 onBlocks: normalizeToIST(r['On-Blocks (Time in IST)'] || r['On-Blocks (LT hh:mm)'] || ''),
                 arrApuOn: remoteArrApu || (prevLocal && prevLocal.arrApuOn ? prevLocal.arrApuOn : ''),
-                apuOnTime: String(r['APU ON TIME'] || '00:00'),
+                apuOnTime: (function () {
+                  const rawApu = String(r['APU ON TIME'] || '').trim();
+                  if (rawApu && rawApu !== '00:00') return rawApu;
+                  const ob = normalizeToIST(r['On-Blocks (Time in IST)'] || r['On-Blocks (LT hh:mm)'] || '');
+                  const aa = remoteArrApu || (prevLocal && prevLocal.arrApuOn ? prevLocal.arrApuOn : '');
+                  const ao = normalizeToIST(r['APU OFF after arrival (Time in IST) - leave blank if APU ran throughout'] || r['APU OFF after arrival (hh:mm) - leave blank if APU ran throughout'] || '');
+                  const ad = normalizeToIST(r['APU ON for departure (Time in IST)'] || r['APU ON for departure (hh:mm)'] || '');
+                  const ofb = normalizeToIST(r['Off-Blocks (Time in IST)'] || r['Off-Blocks (LT hh:mm)'] || '');
+                  return calculateApuDuration(ob, ao, ad, ofb, aa).text || rawApu || '00:00';
+                })(),
                 apuOffArr: normalizeToIST(r['APU OFF after arrival (Time in IST) - leave blank if APU ran throughout'] || r['APU OFF after arrival (hh:mm) - leave blank if APU ran throughout'] || ''),
                 apuOnDep: normalizeToIST(r['APU ON for departure (Time in IST)'] || r['APU ON for departure (hh:mm)'] || ''),
                 offBlocks: normalizeToIST(r['Off-Blocks (Time in IST)'] || r['Off-Blocks (LT hh:mm)'] || ''),
@@ -2097,12 +2145,15 @@
           });
         }
 
-        // Quick "Now" buttons
+        // Quick "Now" buttons (always fills current IST time cleanly)
         document.querySelectorAll('.now-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             const target = document.getElementById(btn.dataset.now);
             if (target && !target.disabled) {
-              target.value = getNowHHMM();
+              const nowIst = getNowISTHHMM();
+              target.value = nowIst;
+              target.dataset.convertedIst = nowIst;
+              delete target.dataset.sourceUtc;
               updateFormApuCalc();
             }
           });
@@ -2134,21 +2185,37 @@
               target.focus();
               return;
             }
-            const conv = utcToIST(target.value);
+            const rawUtc = target.value;
+            const conv = utcToIST(rawUtc);
             if (conv.ist) {
               target.value = conv.ist;
+              target.dataset.convertedIst = conv.ist;
+              target.dataset.sourceUtc = rawUtc;
               updateFormApuCalc();
-              showToast(`Converted to ${conv.ist} IST${conv.dayShift ? ' (+1 day)' : ''}`);
+              showToast(`Converted ${rawUtc} UTC → ${conv.ist} IST${conv.dayShift ? ' (+1 day)' : ''}`);
             }
           });
         });
 
-        // Recalculate APU ON TIME & UTC previews on both input and change (mobile picker support)
+        // Auto-convert UTC -> IST on change/blur in UTC mode & live-update APU ON TIME
         ['fOnBlocks', 'fArrApuOn', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'].forEach(id => {
           const el = document.getElementById(id);
           if (el) {
-            el.addEventListener('input', updateFormApuCalc);
-            el.addEventListener('change', updateFormApuCalc);
+            el.addEventListener('input', () => {
+              if (el.dataset.convertedIst !== el.value) {
+                delete el.dataset.convertedIst;
+                delete el.dataset.sourceUtc;
+              }
+              updateFormApuCalc();
+            });
+            el.addEventListener('change', () => {
+              autoConvertFieldIfUtc(el);
+              updateFormApuCalc();
+            });
+            el.addEventListener('blur', () => {
+              autoConvertFieldIfUtc(el);
+              updateFormApuCalc();
+            });
           }
         });
 
