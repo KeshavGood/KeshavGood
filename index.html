@@ -127,12 +127,64 @@
 
     <!-- ==================== TAB 1: NEW ENTRY FORM ==================== -->
     <section id="tab-entry" class="tab-panel space-y-4">
+
+      <!-- UTC to IST Live Clock & Converter Widget -->
+      <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-sky-950 text-white rounded-2xl shadow-sm border border-slate-700/80 p-3.5 sm:p-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <!-- Live Clocks -->
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center shrink-0">
+                <i data-lucide="globe" class="w-4 h-4 text-sky-300"></i>
+              </div>
+              <div>
+                <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">UTC ↔ IST Converter</p>
+                <p class="text-[11px] text-sky-200 font-medium">IST = UTC + 05:30</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-950/60 border border-slate-700/80 rounded-xl px-3 py-1.5">
+              <div>
+                <span class="block text-[9px] uppercase tracking-wider text-slate-400 font-bold">UTC (Zulu)</span>
+                <span id="liveUtcClock" class="font-mono text-sm font-extrabold text-amber-300">--:--:-- Z</span>
+              </div>
+              <span class="text-slate-600 font-bold px-0.5">|</span>
+              <div>
+                <span class="block text-[9px] uppercase tracking-wider text-slate-400 font-bold">IST (Local)</span>
+                <span id="liveIstClock" class="font-mono text-sm font-extrabold text-emerald-300">--:--:-- IST</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Converter Controls -->
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1.5 bg-slate-950/50 border border-slate-700 rounded-xl px-2.5 py-1.5">
+              <label for="convUtcInput" class="text-[11px] font-bold text-amber-300 whitespace-nowrap">UTC:</label>
+              <input id="convUtcInput" type="time" class="bg-slate-800 text-white border border-slate-600 rounded-lg px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-sky-400" />
+            </div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-sky-400 shrink-0"></i>
+            <div class="flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-500/40 rounded-xl px-3 py-1.5">
+              <span class="text-[11px] font-bold text-emerald-300">IST:</span>
+              <span id="convIstOutput" class="font-mono text-sm font-extrabold text-white">--:--</span>
+              <span id="convDayShift" class="hidden text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-400/30">+1 Day</span>
+            </div>
+            <button type="button" id="convNowBtn" class="px-2.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold transition-colors">Now</button>
+            <select id="convApplyField" class="bg-slate-800 text-slate-100 border border-slate-600 rounded-xl px-2 py-1.5 text-[11px] font-semibold focus:outline-none focus:ring-2 focus:ring-sky-400">
+              <option value="">Apply IST to...</option>
+              <option value="fOnBlocks">On-Blocks (IST)</option>
+              <option value="fApuOffArr">APU OFF after arr. (IST)</option>
+              <option value="fApuOnDep">APU ON for dep. (IST)</option>
+              <option value="fOffBlocks">Off-Blocks (IST)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <!-- Form Header -->
         <div class="px-4 sm:px-6 py-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div class="flex items-center gap-2">
-              <h2 class="text-lg font-bold text-slate-900">Log APU Usage Entry</h2>
+              <h2 class="text-lg font-bold text-slate-900">Log APU Usage Entry <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full ml-1">Time in IST</span></h2>
               <span id="nextEntryBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200">Entry #1</span>
             </div>
             <p class="text-xs text-slate-500 mt-0.5">Automatically appends to the Live Excel Sheet upon submission.</p>
@@ -231,60 +283,79 @@
             </div>
           </div>
 
-          <!-- Group 2: Timings & Auto APU ON TIME -->
+          <!-- Group 2: Timings & Auto APU ON TIME (Time in IST) -->
           <div class="pt-4 border-t border-slate-100">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <i data-lucide="clock" class="w-4 h-4 text-sky-600"></i> 2. Block &amp; APU Timings (Local Time 24h)
-              </h3>
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <i data-lucide="clock" class="w-4 h-4 text-sky-600"></i> 2. Block &amp; APU Timings (Time in IST)
+                </h3>
+                <!-- Input Timezone Mode Toggle -->
+                <div class="inline-flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-200 text-[11px] font-bold" role="group" aria-label="Input Time Mode">
+                  <button type="button" id="modeIstBtn" data-tz-mode="IST" class="tz-mode-btn px-2.5 py-1 rounded-lg bg-sky-600 text-white transition-colors">Enter in IST</button>
+                  <button type="button" id="modeUtcBtn" data-tz-mode="UTC" class="tz-mode-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition-colors">Enter in UTC → Auto IST</button>
+                </div>
+              </div>
               <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg cursor-pointer select-none">
                 <input id="fRanThroughout" type="checkbox" class="w-4 h-4 rounded text-sky-600 focus:ring-sky-500" />
                 <span>APU ran throughout turnaround</span>
               </label>
             </div>
 
+            <div id="utcModeNotice" class="hidden mb-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-[11px] text-amber-900 font-semibold flex flex-wrap items-center justify-between gap-2">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
+                UTC Input Mode Active: Enter UTC (Zulu) times below — all fields will automatically convert &amp; save in IST (+05:30).
+              </span>
+              <button type="button" id="convertFieldsNowBtn" class="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold">Convert Filled Times to IST Now</button>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
               <!-- On-Blocks -->
               <div>
                 <div class="flex items-center justify-between mb-1">
-                  <label class="text-xs font-semibold text-slate-700" for="fOnBlocks">On-Blocks (LT hh:mm) <span class="text-rose-500">*</span></label>
+                  <label class="text-xs font-semibold text-slate-700" for="fOnBlocks">On-Blocks (Time in IST) <span class="text-rose-500">*</span></label>
                   <button type="button" data-now="fOnBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
                 </div>
                 <input id="fOnBlocks" type="time" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <span id="prev_fOnBlocks" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
               </div>
 
               <!-- APU OFF after arrival -->
               <div>
                 <div class="flex items-center justify-between mb-1">
-                  <label class="text-xs font-semibold text-slate-700" for="fApuOffArr">APU OFF after arr.</label>
+                  <label class="text-xs font-semibold text-slate-700" for="fApuOffArr">APU OFF after arr. (Time in IST)</label>
                   <button type="button" data-now="fApuOffArr" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
                 </div>
                 <input id="fApuOffArr" type="time" class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400" />
+                <span id="prev_fApuOffArr" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
                 <span class="block text-[10px] text-slate-500 mt-0.5">Leave blank if ran throughout</span>
               </div>
 
               <!-- APU ON for departure -->
               <div>
                 <div class="flex items-center justify-between mb-1">
-                  <label class="text-xs font-semibold text-slate-700" for="fApuOnDep">APU ON for dep.</label>
+                  <label class="text-xs font-semibold text-slate-700" for="fApuOnDep">APU ON for dep. (Time in IST)</label>
                   <button type="button" data-now="fApuOnDep" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
                 </div>
                 <input id="fApuOnDep" type="time" class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400" />
+                <span id="prev_fApuOnDep" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
               </div>
 
               <!-- Off-Blocks -->
               <div>
                 <div class="flex items-center justify-between mb-1">
-                  <label class="text-xs font-semibold text-slate-700" for="fOffBlocks">Off-Blocks (LT hh:mm) <span class="text-rose-500">*</span></label>
+                  <label class="text-xs font-semibold text-slate-700" for="fOffBlocks">Off-Blocks (Time in IST) <span class="text-rose-500">*</span></label>
                   <button type="button" data-now="fOffBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
                 </div>
                 <input id="fOffBlocks" type="time" required class="tap-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <span id="prev_fOffBlocks" class="hidden block text-[11px] text-emerald-700 font-bold mt-1"></span>
               </div>
 
               <!-- APU ON TIME (Auto Calculated + Manual Override) -->
               <div class="bg-sky-50/80 border border-sky-200 rounded-xl p-2.5 flex flex-col justify-between">
                 <div class="flex items-center justify-between gap-1 mb-1">
-                  <label class="text-xs font-bold text-sky-900" for="fApuOnTime">APU ON TIME</label>
+                  <label class="text-xs font-bold text-sky-900" for="fApuOnTime">APU ON TIME (Duration)</label>
                   <button type="button" id="toggleManualApuBtn" class="text-[10px] font-semibold text-sky-700 underline">Override</button>
                 </div>
                 <input id="fApuOnTime" type="text" placeholder="00:00" readonly class="w-full rounded-lg border border-sky-200 bg-white px-2.5 py-1.5 text-base font-extrabold text-sky-700 text-center focus:outline-none focus:ring-2 focus:ring-sky-500" />
@@ -363,7 +434,7 @@
         <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
             <div class="flex items-center gap-2">
-              <h2 class="text-lg font-bold text-slate-900">Live APU Excel Sheet</h2>
+              <h2 class="text-lg font-bold text-slate-900">Live APU Excel Sheet <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full ml-1">Time in IST</span></h2>
               <span id="sheetTotalBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">0 Entries</span>
             </div>
             <p class="text-xs text-slate-500 mt-0.5">Supports unlimited rows across all 17 standard columns. Export to real .xlsx anytime.</p>
@@ -419,11 +490,11 @@
                 <th class="px-3 py-3 border-r border-slate-700">Fleet</th>
                 <th class="px-3 py-3 border-r border-slate-700">Stand / Bay No.</th>
                 <th class="px-3 py-3 border-r border-slate-700">Bay Type</th>
-                <th class="px-3 py-3 border-r border-slate-700">On-Blocks (LT hh:mm)</th>
+                <th class="px-3 py-3 border-r border-slate-700">On-Blocks (Time in IST)</th>
                 <th class="px-3 py-3 border-r border-slate-700 bg-sky-900">APU ON TIME</th>
-                <th class="px-3 py-3 border-r border-slate-700">APU OFF after arrival (hh:mm)</th>
-                <th class="px-3 py-3 border-r border-slate-700">APU ON for departure (hh:mm)</th>
-                <th class="px-3 py-3 border-r border-slate-700">Off-Blocks (LT hh:mm)</th>
+                <th class="px-3 py-3 border-r border-slate-700">APU OFF after arrival (Time in IST)</th>
+                <th class="px-3 py-3 border-r border-slate-700">APU ON for departure (Time in IST)</th>
+                <th class="px-3 py-3 border-r border-slate-700">Off-Blocks (Time in IST)</th>
                 <th class="px-3 py-3 border-r border-slate-700">Primary Reason For Using APU</th>
                 <th class="px-3 py-3 border-r border-slate-700">Secondary Reason for using APU</th>
                 <th class="px-3 py-3 border-r border-slate-700">Remarks ( if any delay)</th>
@@ -683,10 +754,10 @@
             <option value="Open Stand">Open Stand</option>
           </select>
         </div>
-        <div><label class="font-semibold block mb-1">On-Blocks (LT hh:mm)</label><input id="eOnBlocks" type="time" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
-        <div><label class="font-semibold block mb-1">Off-Blocks (LT hh:mm)</label><input id="eOffBlocks" type="time" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
-        <div><label class="font-semibold block mb-1">APU OFF after arrival</label><input id="eApuOffArr" type="time" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
-        <div><label class="font-semibold block mb-1">APU ON for departure</label><input id="eApuOnDep" type="time" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">On-Blocks (Time in IST)</label><input id="eOnBlocks" type="time" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">Off-Blocks (Time in IST)</label><input id="eOffBlocks" type="time" required class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">APU OFF after arrival (Time in IST)</label><input id="eApuOffArr" type="time" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
+        <div><label class="font-semibold block mb-1">APU ON for departure (Time in IST)</label><input id="eApuOnDep" type="time" class="w-full rounded-lg border border-slate-300 px-2.5 py-2" /></div>
         <div><label class="font-semibold block mb-1">APU ON TIME (hh:mm)</label><input id="eApuOnTime" type="text" required class="w-full rounded-lg border border-sky-300 bg-sky-50 font-bold px-2.5 py-2" /></div>
         <div><label class="font-semibold block mb-1">Primary Reason</label><select id="ePrimaryReason" class="w-full rounded-lg border border-slate-300 px-2.5 py-2 bg-white"></select></div>
         <div><label class="font-semibold block mb-1">Secondary Reason</label><select id="eSecondaryReason" class="w-full rounded-lg border border-slate-300 px-2.5 py-2 bg-white"></select></div>
@@ -735,11 +806,11 @@
         'Fleet',
         'Stand / Bay No.',
         'Bay Type',
-        'On-Blocks (LT hh:mm)',
+        'On-Blocks (Time in IST)',
         'APU ON TIME',
-        'APU OFF after arrival (hh:mm) - leave blank if APU ran throughout',
-        'APU ON for departure (hh:mm)',
-        'Off-Blocks (LT hh:mm)',
+        'APU OFF after arrival (Time in IST) - leave blank if APU ran throughout',
+        'APU ON for departure (Time in IST)',
+        'Off-Blocks (Time in IST)',
         'Primary Reason For Using APU',
         'Secondary Reason for using APU',
         'Remarks ( if any delay)'
@@ -824,6 +895,7 @@
         adminPin: '',
         activeTab: 'entry',
         manualApuOverride: false,
+        tzMode: 'IST', // 'IST' or 'UTC' (auto-converts to IST)
         page: 1,
         pageSize: 25
       };
@@ -877,17 +949,128 @@
         return `${dd}-${MONTHS[mm]}-${yy}`;
       }
 
+      // Always compute exact IST (UTC +05:30) regardless of device timezone
+      function getISTDateObj(baseDate = new Date()) {
+        const utcMs = baseDate.getTime() + (baseDate.getTimezoneOffset() * 60000);
+        return new Date(utcMs + (330 * 60000));
+      }
+
       function getTodayISO() {
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, '0');
-        const d = String(now.getDate()).padStart(2, '0');
+        const ist = getISTDateObj();
+        const y = ist.getFullYear();
+        const m = String(ist.getMonth() + 1).padStart(2, '0');
+        const d = String(ist.getDate()).padStart(2, '0');
         return `${y}-${m}-${d}`;
       }
 
-      function getNowHHMM() {
+      function getNowISTHHMM() {
+        const ist = getISTDateObj();
+        return `${String(ist.getHours()).padStart(2, '0')}:${String(ist.getMinutes()).padStart(2, '0')}`;
+      }
+
+      function getNowUTCHHMM() {
         const now = new Date();
-        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        return `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`;
+      }
+
+      function getNowHHMM() {
+        return session.tzMode === 'UTC' ? getNowUTCHHMM() : getNowISTHHMM();
+      }
+
+      // Convert UTC HH:MM to IST HH:MM (+05:30) with dayShift flag
+      function utcToIST(hhmm) {
+        const mins = timeToMinutes(hhmm);
+        if (mins === null) return { ist: '', dayShift: false };
+        const total = mins + 330; // +5h 30m
+        const dayShift = total >= 1440;
+        const wrapped = total % 1440;
+        const h = Math.floor(wrapped / 60);
+        const m = wrapped % 60;
+        return { ist: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, dayShift };
+      }
+
+      // Normalize any time string to IST (if tagged with Z or UTC, auto-convert +05:30)
+      function normalizeToIST(val) {
+        const raw = String(val == null ? '' : val).trim();
+        if (!raw) return '';
+        const isUtcTagged = /(z|utc|gmt)$/i.test(raw);
+        const cleaned = raw.replace(/\s*(z|utc|gmt|ist|lt)$/i, '').trim();
+        const m = cleaned.match(/^(\d{1,2}):(\d{2})/);
+        if (!m) return cleaned;
+        const hhmm = `${m[1].padStart(2, '0')}:${m[2]}`;
+        return isUtcTagged ? utcToIST(hhmm).ist : hhmm;
+      }
+
+      // Return the IST value of a form timing input (auto-converts if in UTC mode)
+      function getFormTimeInIST(inputId) {
+        const val = (document.getElementById(inputId) || {}).value || '';
+        if (!val) return '';
+        return session.tzMode === 'UTC' ? utcToIST(val).ist : val;
+      }
+
+      function updateUtcPreviews() {
+        const ids = ['fOnBlocks', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'];
+        ids.forEach(id => {
+          const prevEl = document.getElementById(`prev_${id}`);
+          const inp = document.getElementById(id);
+          if (!prevEl || !inp) return;
+          if (session.tzMode === 'UTC' && inp.value && !inp.disabled) {
+            const conv = utcToIST(inp.value);
+            prevEl.textContent = `→ IST: ${conv.ist}${conv.dayShift ? ' (+1d)' : ''}`;
+            prevEl.classList.remove('hidden');
+          } else {
+            prevEl.classList.add('hidden');
+          }
+        });
+      }
+
+      function setTzMode(mode) {
+        session.tzMode = mode === 'UTC' ? 'UTC' : 'IST';
+        const istBtn = document.getElementById('modeIstBtn');
+        const utcBtn = document.getElementById('modeUtcBtn');
+        const notice = document.getElementById('utcModeNotice');
+        if (istBtn && utcBtn) {
+          const isUtc = session.tzMode === 'UTC';
+          istBtn.className = `tz-mode-btn px-2.5 py-1 rounded-lg transition-colors ${!isUtc ? 'bg-sky-600 text-white' : 'text-slate-600 hover:text-slate-900'}`;
+          utcBtn.className = `tz-mode-btn px-2.5 py-1 rounded-lg transition-colors ${isUtc ? 'bg-amber-600 text-white' : 'text-slate-600 hover:text-slate-900'}`;
+          if (notice) notice.classList.toggle('hidden', !isUtc);
+        }
+        updateUtcPreviews();
+        updateFormApuCalc();
+      }
+
+      function updateConverterWidget() {
+        const inp = document.getElementById('convUtcInput');
+        const out = document.getElementById('convIstOutput');
+        const shift = document.getElementById('convDayShift');
+        if (!inp || !out) return;
+        if (!inp.value) {
+          out.textContent = '--:--';
+          if (shift) shift.classList.add('hidden');
+          return;
+        }
+        const conv = utcToIST(inp.value);
+        out.textContent = `${conv.ist} IST`;
+        if (shift) shift.classList.toggle('hidden', !conv.dayShift);
+      }
+
+      function startLiveClocks() {
+        function tick() {
+          const now = new Date();
+          const uH = String(now.getUTCHours()).padStart(2, '0');
+          const uM = String(now.getUTCMinutes()).padStart(2, '0');
+          const uS = String(now.getUTCSeconds()).padStart(2, '0');
+          const ist = getISTDateObj(now);
+          const iH = String(ist.getHours()).padStart(2, '0');
+          const iM = String(ist.getMinutes()).padStart(2, '0');
+          const iS = String(ist.getSeconds()).padStart(2, '0');
+          const utcEl = document.getElementById('liveUtcClock');
+          const istEl = document.getElementById('liveIstClock');
+          if (utcEl) utcEl.textContent = `${uH}:${uM}:${uS} Z`;
+          if (istEl) istEl.textContent = `${iH}:${iM}:${iS} IST`;
+        }
+        tick();
+        setInterval(tick, 1000);
       }
 
       function timeToMinutes(hhmm) {
@@ -1015,13 +1198,14 @@
           .replace(/'/g, '&#39;');
       }
 
-      // Live APU Calculation on Form
+      // Live APU Calculation on Form (always using IST-converted values)
       function updateFormApuCalc() {
+        updateUtcPreviews();
         if (session.manualApuOverride) return;
-        const onBlocks = document.getElementById('fOnBlocks').value;
-        const apuOffArr = document.getElementById('fApuOffArr').value;
-        const apuOnDep = document.getElementById('fApuOnDep').value;
-        const offBlocks = document.getElementById('fOffBlocks').value;
+        const onBlocks = getFormTimeInIST('fOnBlocks');
+        const apuOffArr = getFormTimeInIST('fApuOffArr');
+        const apuOnDep = getFormTimeInIST('fApuOnDep');
+        const offBlocks = getFormTimeInIST('fOffBlocks');
         const res = calculateApuDuration(onBlocks, apuOffArr, apuOnDep, offBlocks);
         document.getElementById('fApuOnTime').value = res.text;
         document.getElementById('apuCalcHint').textContent = res.mode;
@@ -1143,10 +1327,14 @@
           'Stand / Bay No.': entry.bayNo,
           'Bay Type': entry.bayType,
           'On-Blocks (LT hh:mm)': entry.onBlocks,
+          'On-Blocks (Time in IST)': entry.onBlocks,
           'APU ON TIME': entry.apuOnTime,
           'APU OFF after arrival (hh:mm) - leave blank if APU ran throughout': entry.apuOffArr || '',
+          'APU OFF after arrival (Time in IST) - leave blank if APU ran throughout': entry.apuOffArr || '',
           'APU ON for departure (hh:mm)': entry.apuOnDep || '',
+          'APU ON for departure (Time in IST)': entry.apuOnDep || '',
           'Off-Blocks (LT hh:mm)': entry.offBlocks,
+          'Off-Blocks (Time in IST)': entry.offBlocks,
           'Primary Reason For Using APU': entry.primaryReason,
           'Secondary Reason for using APU': entry.secondaryReason || '',
           'Remarks ( if any delay)': entry.remarks || ''
@@ -1235,11 +1423,11 @@
               fleet: String(r['Fleet'] || ''),
               bayNo: String(r['Stand / Bay No.'] || '').toUpperCase(),
               bayType: String(r['Bay Type'] || 'Contact'),
-              onBlocks: String(r['On-Blocks (LT hh:mm)'] || ''),
+              onBlocks: normalizeToIST(r['On-Blocks (Time in IST)'] || r['On-Blocks (LT hh:mm)'] || ''),
               apuOnTime: String(r['APU ON TIME'] || '00:00'),
-              apuOffArr: String(r['APU OFF after arrival (hh:mm) - leave blank if APU ran throughout'] || ''),
-              apuOnDep: String(r['APU ON for departure (hh:mm)'] || ''),
-              offBlocks: String(r['Off-Blocks (LT hh:mm)'] || ''),
+              apuOffArr: normalizeToIST(r['APU OFF after arrival (Time in IST) - leave blank if APU ran throughout'] || r['APU OFF after arrival (hh:mm) - leave blank if APU ran throughout'] || ''),
+              apuOnDep: normalizeToIST(r['APU ON for departure (Time in IST)'] || r['APU ON for departure (hh:mm)'] || ''),
+              offBlocks: normalizeToIST(r['Off-Blocks (Time in IST)'] || r['Off-Blocks (LT hh:mm)'] || ''),
               primaryReason: String(r['Primary Reason For Using APU'] || ''),
               secondaryReason: String(r['Secondary Reason for using APU'] || 'None'),
               remarks: String(r['Remarks ( if any delay)'] || ''),
@@ -1792,6 +1980,67 @@
         // Date preview
         document.getElementById('fDate').addEventListener('change', updateFormHeader);
 
+        // UTC <-> IST Input Mode Toggle
+        document.querySelectorAll('.tz-mode-btn').forEach(btn => {
+          btn.addEventListener('click', () => setTzMode(btn.dataset.tzMode));
+        });
+
+        // One-click Convert Filled UTC Times to IST in place
+        const convFieldsBtn = document.getElementById('convertFieldsNowBtn');
+        if (convFieldsBtn) {
+          convFieldsBtn.addEventListener('click', () => {
+            ['fOnBlocks', 'fApuOffArr', 'fApuOnDep', 'fOffBlocks'].forEach(id => {
+              const inp = document.getElementById(id);
+              if (inp && inp.value && !inp.disabled) {
+                inp.value = utcToIST(inp.value).ist;
+              }
+            });
+            setTzMode('IST');
+            showToast('Converted all filled times from UTC to IST!');
+          });
+        }
+
+        // UTC -> IST Converter Widget
+        const convUtcInput = document.getElementById('convUtcInput');
+        if (convUtcInput) {
+          convUtcInput.value = getNowUTCHHMM();
+          updateConverterWidget();
+          convUtcInput.addEventListener('input', updateConverterWidget);
+        }
+        const convNowBtn = document.getElementById('convNowBtn');
+        if (convNowBtn && convUtcInput) {
+          convNowBtn.addEventListener('click', () => {
+            convUtcInput.value = getNowUTCHHMM();
+            updateConverterWidget();
+          });
+        }
+        const convApplyField = document.getElementById('convApplyField');
+        if (convApplyField && convUtcInput) {
+          convApplyField.addEventListener('change', () => {
+            const targetId = convApplyField.value;
+            if (!targetId) return;
+            const conv = utcToIST(convUtcInput.value);
+            if (!conv.ist) {
+              showToast('Enter a UTC time first.', 'warning');
+              convApplyField.value = '';
+              return;
+            }
+            if (session.tzMode === 'UTC') setTzMode('IST');
+            const target = document.getElementById(targetId);
+            if (target) {
+              if (target.disabled) {
+                document.getElementById('fRanThroughout').checked = false;
+                document.getElementById('fApuOffArr').disabled = false;
+                document.getElementById('fApuOnDep').disabled = false;
+              }
+              target.value = conv.ist;
+              updateFormApuCalc();
+              showToast(`Applied ${conv.ist} IST to form!`);
+            }
+            convApplyField.value = '';
+          });
+        }
+
         // Quick "Now" buttons
         document.querySelectorAll('.now-btn').forEach(btn => {
           btn.addEventListener('click', () => {
@@ -1866,10 +2115,10 @@
           const fleet = document.getElementById('fFleet').value;
           const bayNo = document.getElementById('fBayNo').value.trim().toUpperCase();
           const bayType = document.getElementById('fBayType').value;
-          const onBlocks = document.getElementById('fOnBlocks').value;
-          const apuOffArr = document.getElementById('fRanThroughout').checked ? '' : document.getElementById('fApuOffArr').value;
-          const apuOnDep = document.getElementById('fRanThroughout').checked ? '' : document.getElementById('fApuOnDep').value;
-          const offBlocks = document.getElementById('fOffBlocks').value;
+          const onBlocks = getFormTimeInIST('fOnBlocks');
+          const apuOffArr = document.getElementById('fRanThroughout').checked ? '' : getFormTimeInIST('fApuOffArr');
+          const apuOnDep = document.getElementById('fRanThroughout').checked ? '' : getFormTimeInIST('fApuOnDep');
+          const offBlocks = getFormTimeInIST('fOffBlocks');
           let apuOnTime = document.getElementById('fApuOnTime').value.trim();
           const primaryReason = document.getElementById('fPrimaryReason').value;
           const secondaryReason = document.getElementById('fSecondaryReason').value;
@@ -2211,11 +2460,11 @@
                   fleet: String(r[6] || 'A320'),
                   bayNo: String(r[7] || ''),
                   bayType: String(r[8] || 'Contact'),
-                  onBlocks: String(r[9] || ''),
+                  onBlocks: normalizeToIST(r[9] || ''),
                   apuOnTime: String(r[10] || '00:00'),
-                  apuOffArr: String(r[11] || ''),
-                  apuOnDep: String(r[12] || ''),
-                  offBlocks: String(r[13] || ''),
+                  apuOffArr: normalizeToIST(r[11] || ''),
+                  apuOnDep: normalizeToIST(r[12] || ''),
+                  offBlocks: normalizeToIST(r[13] || ''),
                   primaryReason: String(r[14] || 'Other'),
                   secondaryReason: String(r[15] || 'None'),
                   remarks: String(r[16] || ''),
@@ -2263,6 +2512,7 @@
         updateRoleUI();
         updateSyncIndicator();
         bindEvents();
+        startLiveClocks();
         if (window.lucide) window.lucide.createIcons();
         if (state.webhookUrl) pullLiveSheet(true);
       }
