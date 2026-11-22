@@ -857,37 +857,37 @@
       const SAMPLE_ENTRIES = [
         {
           id: 'seed-1', entryNo: 1, date: '21-Nov-26', station: 'DEL', arrFlight: '6E-2041', depFlight: '6E-2042',
-          acReg: 'VT-IZK', fleet: 'A320neo', bayNo: '14', bayType: 'Contact', onBlocks: '06:15',
+          acReg: 'VT-IZK', fleet: 'A320neo', bayNo: '14', bayType: 'Contact', onBlocks: '06:15', arrApuOn: '06:15',
           apuOffArr: '06:25', apuOnDep: '06:55', offBlocks: '07:10', apuOnTime: '00:25',
           primaryReason: 'Standard Turnaround Procedure', secondaryReason: 'None', remarks: 'Normal turnaround, FEGP connected on time', synced: true
         },
         {
           id: 'seed-2', entryNo: 2, date: '21-Nov-26', station: 'DEL', arrFlight: 'AI-805', depFlight: 'AI-806',
-          acReg: 'VT-EXN', fleet: 'A321', bayNo: 'R-42', bayType: 'Remote', onBlocks: '07:30',
+          acReg: 'VT-EXN', fleet: 'A321', bayNo: 'R-42', bayType: 'Remote', onBlocks: '07:30', arrApuOn: '07:30',
           apuOffArr: '', apuOnDep: '', offBlocks: '08:25', apuOnTime: '00:55',
           primaryReason: 'Remote Bay (No FEGP/PCA)', secondaryReason: 'High Ambient Temperature', remarks: 'APU ran throughout; mobile ACU not available', synced: true
         },
         {
           id: 'seed-3', entryNo: 3, date: '21-Nov-26', station: 'BOM', arrFlight: 'UK-945', depFlight: 'UK-946',
-          acReg: 'VT-TNV', fleet: 'A320neo', bayNo: '48', bayType: 'Contact', onBlocks: '09:10',
+          acReg: 'VT-TNV', fleet: 'A320neo', bayNo: '48', bayType: 'Contact', onBlocks: '09:10', arrApuOn: '09:10',
           apuOffArr: '09:30', apuOnDep: '10:05', offBlocks: '10:20', apuOnTime: '00:35',
           primaryReason: 'PCA / ACU Unserviceable', secondaryReason: 'None', remarks: 'Bay 48 PCA fault reported to airport ops', synced: true
         },
         {
           id: 'seed-4', entryNo: 4, date: '21-Nov-26', station: 'BLR', arrFlight: 'QP-1302', depFlight: 'QP-1303',
-          acReg: 'VT-YAH', fleet: 'B737 MAX', bayNo: '22', bayType: 'Contact', onBlocks: '11:05',
+          acReg: 'VT-YAH', fleet: 'B737 MAX', bayNo: '22', bayType: 'Contact', onBlocks: '11:05', arrApuOn: '11:05',
           apuOffArr: '', apuOnDep: '', offBlocks: '11:35', apuOnTime: '00:30',
           primaryReason: 'Short Turnaround (<35 min)', secondaryReason: 'None', remarks: '30 min quick turn; no delay', synced: true
         },
         {
           id: 'seed-5', entryNo: 5, date: '21-Nov-26', station: 'HYD', arrFlight: '6E-6118', depFlight: '6E-6119',
-          acReg: 'VT-IUL', fleet: 'A321neo', bayNo: '104', bayType: 'Remote', onBlocks: '13:40',
+          acReg: 'VT-IUL', fleet: 'A321neo', bayNo: '104', bayType: 'Remote', onBlocks: '13:40', arrApuOn: '13:40',
           apuOffArr: '13:52', apuOnDep: '14:20', offBlocks: '14:40', apuOnTime: '00:32',
           primaryReason: 'Equipment Positioning Delay', secondaryReason: 'Remote Bay (No FEGP/PCA)', remarks: 'GPU arrived 10 mins after chocks-on', synced: true
         },
         {
           id: 'seed-6', entryNo: 6, date: '21-Nov-26', station: 'DEL', arrFlight: 'AI-101', depFlight: 'AI-102',
-          acReg: 'VT-ANP', fleet: 'B787-8', bayNo: '19', bayType: 'Contact', onBlocks: '15:00',
+          acReg: 'VT-ANP', fleet: 'B787-8', bayNo: '19', bayType: 'Contact', onBlocks: '15:00', arrApuOn: '15:00',
           apuOffArr: '', apuOnDep: '', offBlocks: '16:15', apuOnTime: '01:15',
           primaryReason: 'GPU / FEGP Unserviceable', secondaryReason: 'Maintenance / Engineering Requirement', remarks: 'FEGP tripped twice; 12 min departure delay', synced: true
         }
@@ -1432,29 +1432,42 @@
           if (!resp.ok) throw new Error('HTTP ' + resp.status);
           const data = await resp.json();
           if (data && Array.isArray(data.rows)) {
+            const localByNo = {};
+            state.entries.forEach(e => {
+              if (e && e.entryNo != null) localByNo[Number(e.entryNo)] = e;
+            });
             const pendingLocal = state.entries.filter(e => !e.synced);
-            const remoteEntries = data.rows.map((r, idx) => ({
-              id: `cloud-${r['Entry No.'] || idx + 1}`,
-              entryNo: Number(r['Entry No.']) || (idx + 1),
-              date: String(r['Date (DD-MMM-YY)'] || ''),
-              station: String(r['Station'] || '').toUpperCase(),
-              arrFlight: String(r['Arr Flight No.'] || '').toUpperCase(),
-              depFlight: String(r['Dep Flight No.'] || '').toUpperCase(),
-              acReg: String(r['AC Reg.'] || '').toUpperCase(),
-              fleet: String(r['Fleet'] || ''),
-              bayNo: String(r['Stand / Bay No.'] || '').toUpperCase(),
-              bayType: String(r['Bay Type'] || 'Contact'),
-              onBlocks: normalizeToIST(r['On-Blocks (Time in IST)'] || r['On-Blocks (LT hh:mm)'] || ''),
-              arrApuOn: normalizeToIST(r['ARRIVAL APU ON TIME (Time in IST)'] || ''),
-              apuOnTime: String(r['APU ON TIME'] || '00:00'),
-              apuOffArr: normalizeToIST(r['APU OFF after arrival (Time in IST) - leave blank if APU ran throughout'] || r['APU OFF after arrival (hh:mm) - leave blank if APU ran throughout'] || ''),
-              apuOnDep: normalizeToIST(r['APU ON for departure (Time in IST)'] || r['APU ON for departure (hh:mm)'] || ''),
-              offBlocks: normalizeToIST(r['Off-Blocks (Time in IST)'] || r['Off-Blocks (LT hh:mm)'] || ''),
-              primaryReason: String(r['Primary Reason For Using APU'] || ''),
-              secondaryReason: String(r['Secondary Reason for using APU'] || 'None'),
-              remarks: String(r['Remarks ( if any delay)'] || ''),
-              synced: true
-            }));
+            const remoteEntries = data.rows.map((r, idx) => {
+              const entryNo = Number(r['Entry No.']) || (idx + 1);
+              const localMatch = localByNo[entryNo] || {};
+              const remoteArrApuOn = normalizeToIST(
+                r['ARRIVAL APU ON TIME (Time in IST)'] ||
+                r['ARRIVAL APU ON TIME'] ||
+                ''
+              );
+              return {
+                id: `cloud-${r['Entry No.'] || idx + 1}`,
+                entryNo,
+                date: String(r['Date (DD-MMM-YY)'] || ''),
+                station: String(r['Station'] || '').toUpperCase(),
+                arrFlight: String(r['Arr Flight No.'] || '').toUpperCase(),
+                depFlight: String(r['Dep Flight No.'] || '').toUpperCase(),
+                acReg: String(r['AC Reg.'] || '').toUpperCase(),
+                fleet: String(r['Fleet'] || ''),
+                bayNo: String(r['Stand / Bay No.'] || '').toUpperCase(),
+                bayType: String(r['Bay Type'] || 'Contact'),
+                onBlocks: normalizeToIST(r['On-Blocks (Time in IST)'] || r['On-Blocks (LT hh:mm)'] || ''),
+                arrApuOn: remoteArrApuOn || localMatch.arrApuOn || '',
+                apuOnTime: String(r['APU ON TIME'] || '00:00'),
+                apuOffArr: normalizeToIST(r['APU OFF after arrival (Time in IST) - leave blank if APU ran throughout'] || r['APU OFF after arrival (hh:mm) - leave blank if APU ran throughout'] || ''),
+                apuOnDep: normalizeToIST(r['APU ON for departure (Time in IST)'] || r['APU ON for departure (hh:mm)'] || ''),
+                offBlocks: normalizeToIST(r['Off-Blocks (Time in IST)'] || r['Off-Blocks (LT hh:mm)'] || ''),
+                primaryReason: String(r['Primary Reason For Using APU'] || ''),
+                secondaryReason: String(r['Secondary Reason for using APU'] || 'None'),
+                remarks: String(r['Remarks ( if any delay)'] || ''),
+                synced: true
+              };
+            });
             const maxRemote = remoteEntries.reduce((m, e) => Math.max(m, e.entryNo), 0);
             let nextNo = maxRemote + 1;
             pendingLocal.forEach(p => { p.entryNo = nextNo++; });
@@ -2489,7 +2502,8 @@
                   bayNo: String(r[7] || ''),
                   bayType: String(r[8] || 'Contact'),
                   onBlocks: normalizeToIST(r[9] || ''),
-                  apuOnTime: String(r[10] || '00:00'),
+                  arrApuOn: r.length >= 18 ? normalizeToIST(r[10] || '') : '',
+                  apuOnTime: r.length >= 18 ? String(r[17] || '00:00') : String(r[10] || '00:00'),
                   apuOffArr: normalizeToIST(r[11] || ''),
                   apuOnDep: normalizeToIST(r[12] || ''),
                   offBlocks: normalizeToIST(r[13] || ''),

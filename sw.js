@@ -1,4 +1,4 @@
-const CACHE_NAME = 'apu-opslog-v6';
+const CACHE_NAME = 'apu-opslog-v7';
 const APP_SHELL = [
   './',
   './index.html',
