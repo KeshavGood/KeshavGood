@@ -289,12 +289,12 @@
             <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
               <div class="flex flex-wrap items-center gap-2">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <i data-lucide="clock" class="w-4 h-4 text-sky-600"></i> 2. Block &amp; APU Timings (Time in IST)
+                  <i data-lucide="clock" class="w-4 h-4 text-sky-600"></i> 2. Block &amp; APU Timings <span class="tz-label-tag">(Time in IST)</span>
                 </h3>
                 <!-- Input Timezone Mode Toggle -->
                 <div class="inline-flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-200 text-[11px] font-bold" role="group" aria-label="Input Time Mode">
                   <button type="button" id="modeIstBtn" data-tz-mode="IST" class="tz-mode-btn px-2.5 py-1 rounded-lg bg-sky-600 text-white transition-colors">Enter in IST</button>
-                  <button type="button" id="modeUtcBtn" data-tz-mode="UTC" class="tz-mode-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition-colors">Enter in UTC → Auto IST</button>
+                  <button type="button" id="modeUtcBtn" data-tz-mode="UTC" class="tz-mode-btn px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition-colors">Enter in UTC</button>
                 </div>
               </div>
               <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg cursor-pointer select-none">
@@ -315,7 +315,7 @@
               <!-- On-Blocks -->
               <div>
                 <div class="flex items-center justify-between gap-1 mb-1">
-                  <label class="text-xs font-semibold text-slate-700" for="fOnBlocks">On-Blocks (Time in IST) <span class="text-rose-500">*</span></label>
+                  <label class="text-xs font-semibold text-slate-700" for="fOnBlocks">On-Blocks <span class="tz-label-tag">(Time in IST)</span> <span class="text-rose-500">*</span></label>
                   <div class="flex items-center gap-2 shrink-0">
                     <button type="button" data-utc-to-ist="fOnBlocks" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
                     <button type="button" data-now="fOnBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
@@ -328,7 +328,7 @@
               <!-- ARRIVAL APU ON TIME (Time in IST) -->
               <div>
                 <div class="flex items-center justify-between gap-1 mb-1">
-                  <label class="text-xs font-semibold text-slate-700" for="fArrApuOn">ARRIVAL APU ON TIME (Time in IST)</label>
+                  <label class="text-xs font-semibold text-slate-700" for="fArrApuOn">ARRIVAL APU ON TIME <span class="tz-label-tag">(Time in IST)</span></label>
                   <div class="flex items-center gap-2 shrink-0">
                     <button type="button" data-utc-to-ist="fArrApuOn" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
                     <button type="button" data-now="fArrApuOn" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
@@ -341,7 +341,7 @@
               <!-- APU OFF after arrival -->
               <div>
                 <div class="flex items-center justify-between gap-1 mb-1">
-                  <label class="text-xs font-semibold text-slate-700" for="fApuOffArr">APU OFF after arr. (Time in IST)</label>
+                  <label class="text-xs font-semibold text-slate-700" for="fApuOffArr">APU OFF after arr. <span class="tz-label-tag">(Time in IST)</span></label>
                   <div class="flex items-center gap-2 shrink-0">
                     <button type="button" data-utc-to-ist="fApuOffArr" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
                     <button type="button" data-now="fApuOffArr" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
@@ -355,7 +355,7 @@
               <!-- APU ON for departure -->
               <div>
                 <div class="flex items-center justify-between gap-1 mb-1">
-                  <label class="text-xs font-semibold text-slate-700" for="fApuOnDep">APU ON for dep. (Time in IST)</label>
+                  <label class="text-xs font-semibold text-slate-700" for="fApuOnDep">APU ON for dep. <span class="tz-label-tag">(Time in IST)</span></label>
                   <div class="flex items-center gap-2 shrink-0">
                     <button type="button" data-utc-to-ist="fApuOnDep" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
                     <button type="button" data-now="fApuOnDep" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
@@ -368,7 +368,7 @@
               <!-- Off-Blocks -->
               <div>
                 <div class="flex items-center justify-between gap-1 mb-1">
-                  <label class="text-xs font-semibold text-slate-700" for="fOffBlocks">Off-Blocks (Time in IST) <span class="text-rose-500">*</span></label>
+                  <label class="text-xs font-semibold text-slate-700" for="fOffBlocks">Off-Blocks <span class="tz-label-tag">(Time in IST)</span> <span class="text-rose-500">*</span></label>
                   <div class="flex items-center gap-2 shrink-0">
                     <button type="button" data-utc-to-ist="fOffBlocks" title="Convert this field from UTC to IST (+05:30)" class="utc2ist-btn hidden text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 px-1.5 py-0.5 rounded">UTC→IST</button>
                     <button type="button" data-now="fOffBlocks" class="now-btn text-[11px] font-semibold text-sky-600 hover:underline">Now</button>
@@ -1112,6 +1112,9 @@
           utcBtn.className = `tz-mode-btn px-2.5 py-1 rounded-lg transition-colors ${isUtc ? 'bg-amber-600 text-white' : 'text-slate-600 hover:text-slate-900'}`;
           if (notice) notice.classList.toggle('hidden', !isUtc);
           document.querySelectorAll('.utc2ist-btn').forEach(b => b.classList.toggle('hidden', !isUtc));
+          document.querySelectorAll('.tz-label-tag').forEach(el => {
+            el.textContent = isUtc ? '(Time in UTC)' : '(Time in IST)';
+          });
         }
         updateUtcPreviews();
         updateFormApuCalc();
@@ -1288,7 +1291,7 @@
         updateUtcPreviews();
         if (session.manualApuOverride) return;
         const onBlocks = getFormTimeInIST('fOnBlocks');
-        const arrApuOn = getFormTimeInIST('fArrApuOn');
+        const arrApuOn = getFormTimeInIST('fArrApuOn') || onBlocks;
         const apuOffArr = getFormTimeInIST('fApuOffArr');
         const apuOnDep = getFormTimeInIST('fApuOnDep');
         const offBlocks = getFormTimeInIST('fOffBlocks');
@@ -1634,7 +1637,7 @@
                 <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${e.bayType === 'Remote' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${escapeHtml(e.bayType)}</span>
               </td>
               <td class="px-3 py-2.5 border-r border-slate-100 font-mono">${escapeHtml(e.onBlocks)}</td>
-              <td class="px-3 py-2.5 border-r border-slate-100 font-mono text-slate-700">${escapeHtml(e.arrApuOn || '—')}</td>
+              <td class="px-3 py-2.5 border-r border-slate-100 font-mono font-semibold text-emerald-700 bg-emerald-50/30">${escapeHtml(e.arrApuOn || e.onBlocks || '—')}</td>
               <td class="px-3 py-2.5 border-r border-slate-100 font-mono text-slate-600">${e.apuOffArr ? escapeHtml(e.apuOffArr) : '<span class="text-amber-600 italic text-[11px]">Ran throughout</span>'}</td>
               <td class="px-3 py-2.5 border-r border-slate-100 font-mono text-slate-600">${escapeHtml(e.apuOnDep || '—')}</td>
               <td class="px-3 py-2.5 border-r border-slate-100 font-mono">${escapeHtml(e.offBlocks)}</td>
